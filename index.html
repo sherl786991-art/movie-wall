@@ -1,0 +1,3276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>电影推荐墙</title>
+  <style>
+    :root {
+      --bg: #0d0d0d;
+      --card-bg: #1a1a1a;
+      --text: #ffffff;
+      --text-dim: #9aa0a6;
+      --gold: #f5c518;
+      --placeholder-bg: #3a3a3a;
+      --card-radius: 12px;
+      --shadow-hover: 0 18px 40px rgba(0, 0, 0, 0.6);
+      --ease: cubic-bezier(.2, .7, .2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 40px 28px 60px;
+    }
+
+    .header {
+      margin-bottom: 28px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin: 0 0 6px;
+      letter-spacing: 1px;
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    .header .status {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 6px 12px;
+      font-size: 12px;
+      border-radius: 999px;
+      background: #222;
+      color: var(--text-dim);
+    }
+
+    .status.ok {
+      background: rgba(245, 197, 24, 0.12);
+      color: var(--gold);
+    }
+
+    .status.error {
+      background: rgba(255, 77, 79, 0.12);
+      color: #ff6b6b;
+    }
+
+    /* -------- Search bar -------- */
+    .search-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 0 auto 28px;
+      max-width: 640px;
+    }
+
+    .search-bar input[type="text"] {
+      flex: 1;
+      height: 44px;
+      padding: 0 16px;
+      font-size: 15px;
+      color: var(--text);
+      background: #161616;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color .2s ease, background .2s ease;
+    }
+
+    .search-bar input[type="text"]::placeholder {
+      color: #666;
+    }
+
+    .search-bar input[type="text"]:focus {
+      border-color: var(--gold);
+      background: #1a1a1a;
+    }
+
+    .search-bar button {
+      height: 44px;
+      padding: 0 20px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #111;
+      background: var(--gold);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform .15s ease, filter .2s ease;
+    }
+
+    .search-bar button:hover {
+      filter: brightness(1.05);
+    }
+
+    .search-bar button:active {
+      transform: translateY(1px);
+    }
+
+    .search-bar button.clear-btn {
+      color: var(--text);
+      background: #242424;
+      border: 1px solid #2e2e2e;
+    }
+
+    .search-bar button.clear-btn:hover {
+      background: #2c2c2c;
+    }
+
+    .search-meta {
+      text-align: center;
+      margin: -14px auto 22px;
+      font-size: 13px;
+      color: var(--text-dim);
+      min-height: 18px;
+    }
+
+    .search-meta .keyword {
+      color: var(--gold);
+      font-weight: 500;
+    }
+
+    /* -------- Filter bar -------- */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 12px 18px;
+      margin: 0 auto 28px;
+      padding: 14px 18px;
+      max-width: 900px;
+      border-radius: 12px;
+      background: #141414;
+      border: 1px solid #1f1f1f;
+    }
+
+    .filter-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .filter-item label {
+      white-space: nowrap;
+    }
+
+    .filter-item select {
+      height: 34px;
+      padding: 0 10px;
+      font-size: 13px;
+      color: var(--text);
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      outline: none;
+      cursor: pointer;
+      transition: border-color .15s ease;
+    }
+
+    .filter-item select:hover {
+      border-color: #3a3a3a;
+    }
+
+    .filter-item select:focus {
+      border-color: var(--gold);
+    }
+
+    .filter-item select option {
+      background: #1a1a1a;
+      color: var(--text);
+    }
+
+    .filter-item input[type="search"] {
+      width: 170px;
+      height: 34px;
+      padding: 0 12px;
+      font-size: 13px;
+      color: var(--text);
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      outline: none;
+      transition: border-color .15s ease;
+    }
+
+    .filter-item input[type="search"]:focus {
+      border-color: var(--gold);
+    }
+
+    .filter-item input[type="search"]::placeholder {
+      color: #666;
+    }
+
+    .filter-item button.filter-btn {
+      height: 34px;
+      padding: 0 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #111;
+      background: var(--gold);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform .15s ease, filter .2s ease;
+    }
+
+    .filter-item button.filter-btn:hover {
+      filter: brightness(1.05);
+    }
+
+    .filter-item button.filter-btn:active {
+      transform: translateY(1px);
+    }
+
+    .filter-item button.filter-btn.clear-btn {
+      color: var(--text);
+      background: #242424;
+      border: 1px solid #2e2e2e;
+    }
+
+    .filter-item button.filter-btn.clear-btn:hover {
+      background: #2c2c2c;
+    }
+
+    .filter-item .year-sep {
+      color: #555;
+    }
+
+    /* -------- Grid -------- */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 22px;
+    }
+
+    /* -------- Pager -------- */
+    .pager {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin: 28px 0 8px;
+      padding: 16px 12px;
+      border-top: 1px solid rgba(255, 255, 255, .06);
+    }
+
+    .pager[hidden] {
+      display: none !important;
+    }
+
+    .pager-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pager-group--nav {
+      flex: 1 1 auto;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .pager-group--status {
+      justify-content: flex-end;
+    }
+
+    .pager-label {
+      color: var(--text-dim);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .pager-select {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, .10);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: border-color .2s var(--ease);
+    }
+
+    .pager-select:hover {
+      border-color: rgba(255, 255, 255, .25);
+    }
+
+    .pager-select:focus {
+      border-color: var(--gold);
+      outline: none;
+    }
+
+    .pager-select option {
+      background: #1a1a1a;
+    }
+
+    .page-numbers {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .pager-btn {
+      min-width: 38px;
+      height: 38px;
+      padding: 0 10px;
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, .10);
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .2s var(--ease), border-color .2s var(--ease),
+        color .2s var(--ease), transform .15s var(--ease);
+    }
+
+    .pager-btn:hover:not(:disabled):not(.active) {
+      background: rgba(255, 255, 255, .08);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    .pager-btn:active:not(:disabled) {
+      transform: translateY(1px);
+    }
+
+    .pager-btn:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 1px;
+    }
+
+    .pager-btn:disabled {
+      opacity: .35;
+      cursor: not-allowed;
+    }
+
+    .pager-btn.active {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: #000;
+      font-weight: 600;
+      cursor: default;
+    }
+
+    .page-ellipsis {
+      color: var(--text-dim);
+      padding: 0 4px;
+      user-select: none;
+      line-height: 38px;
+    }
+
+    .pager-status {
+      color: var(--text-dim);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .pager-status b {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    /* 翻页时网格淡出 → 淡入 */
+    .grid {
+      transition: opacity .18s var(--ease);
+    }
+
+    .grid--loading {
+      opacity: .25;
+    }
+
+    .grid--fade-in {
+      animation: gridFadeIn .25s var(--ease);
+    }
+
+    @keyframes gridFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* 移动端：折叠首末页、收紧触摸目标、隐藏状态文字 */
+    @media (max-width: 640px) {
+      .pager {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px 8px;
+        justify-content: center;
+      }
+
+      .pager-group--size {
+        order: 2;
+      }
+
+      .pager-group--nav {
+        order: 1;
+        flex: 1 1 100%;
+      }
+
+      .pager-group--status {
+        order: 3;
+        flex: 1 1 100%;
+        justify-content: center;
+      }
+
+      .pager-edge--side {
+        display: none;
+      }
+
+      /* 移动端隐藏首页/末页 */
+      .pager-btn {
+        min-width: 40px;
+        height: 40px;
+      }
+
+      .page-numbers {
+        gap: 2px;
+      }
+    }
+
+    /* -------- Card -------- */
+    .card {
+      position: relative;
+      background: var(--card-bg);
+      border-radius: var(--card-radius);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform .35s var(--ease), box-shadow .35s var(--ease);
+      /* ensure hover not clipped when using transform: see failure experience */
+      will-change: transform;
+    }
+
+    .card:hover {
+      transform: translateY(-8px);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .poster-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 2 / 3;
+      background: var(--placeholder-bg);
+      overflow: hidden;
+    }
+
+    .rating-badge {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.65);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+      letter-spacing: 0.2px;
+      backdrop-filter: blur(5px);
+      -webkit-backdrop-filter: blur(5px);
+      user-select: none;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    }
+
+    .rating-badge .star {
+      color: var(--accent);
+      font-size: 11px;
+      transform: translateY(-0.5px);
+    }
+
+    .poster-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform .4s var(--ease), opacity .3s ease;
+      opacity: 0;
+    }
+
+    .poster-wrap img.loaded {
+      opacity: 1;
+    }
+
+    .card:hover .poster-wrap img.loaded {
+      transform: scale(1.04);
+    }
+
+    /* poster placeholder fallback via CSS */
+    .poster-wrap::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 50% 40%, #555 0%, var(--placeholder-bg) 70%);
+      z-index: 0;
+    }
+
+    .poster-wrap .poster-placeholder-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+      font-size: 13px;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .poster-wrap img {
+      position: relative;
+      z-index: 2;
+    }
+
+    .body {
+      padding: 14px 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--text);
+      margin: 0;
+      /* clamp one line */
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .year {
+      flex-shrink: 0;
+      font-size: 12px;
+      color: var(--text-dim);
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: #262626;
+    }
+
+    .recommendation {
+      margin: 6px 0 0;
+      font-size: 12.5px;
+      line-height: 1.65;
+      color: #d1d5db;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .recommendation .heart-line {
+      color: var(--gold);
+      font-weight: 500;
+      display: block;
+    }
+
+    .recommendation .hardcore-line {
+      display: block;
+      margin-top: 4px;
+      color: #c6cbd1;
+    }
+
+    /* -------- states -------- */
+    .empty,
+    .error-box {
+      grid-column: 1 / -1;
+      padding: 60px 20px;
+      text-align: center;
+      color: var(--text-dim);
+      border-radius: var(--card-radius);
+      background: #141414;
+    }
+
+    .error-box {
+      color: #ff8a8a;
+      background: rgba(255, 77, 79, 0.06);
+    }
+
+    .skeleton {
+      position: relative;
+      overflow: hidden;
+      border-radius: var(--card-radius);
+      background: #1a1a1a;
+    }
+
+    .skeleton::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.05), transparent);
+      transform: translateX(-100%);
+      animation: shimmer 1.4s infinite;
+    }
+
+    @keyframes shimmer {
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    .skeleton .sk-poster {
+      aspect-ratio: 2/3;
+      background: #222;
+    }
+
+    .skeleton .sk-body {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .skeleton .sk-line {
+      height: 12px;
+      border-radius: 6px;
+      background: #222;
+    }
+
+    .skeleton .sk-line.short {
+      width: 40%;
+    }
+
+    .skeleton .sk-line.mid {
+      width: 75%;
+    }
+
+    /* ============================================================
+   * 卡片类型标签（用于卡片底部显示中文 genre）
+   * ============================================================ */
+    .card {
+      cursor: pointer;
+    }
+
+    .genre-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 8px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .genre-tag {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #e5e7eb;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      white-space: nowrap;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ============================================================
+   * 电影详情 Modal
+   * ============================================================ */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+      animation: fadeIn .2s ease forwards;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translateY(20px) scale(0.98);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+      }
+    }
+
+    .modal {
+      position: relative;
+      width: 100%;
+      max-width: 960px;
+      max-height: calc(100vh - 80px);
+      overflow: hidden;
+      background: #151515;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      box-shadow: 0 40px 100px rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      animation: slideUp .28s cubic-bezier(.2, .7, .2, 1) forwards;
+    }
+
+    /* 内容区可垂直滚动 */
+    .modal-scroll {
+      overflow-y: auto;
+      max-height: calc(100vh - 80px);
+      padding-right: 2px;
+    }
+
+    .modal-scroll::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .modal-scroll::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 10px;
+      border: 2px solid #151515;
+    }
+
+    .modal-scroll::-webkit-scrollbar-track {
+      background: #151515;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      z-index: 20;
+      width: 38px;
+      height: 38px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.55);
+      color: #fff;
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      transition: background .2s, transform .2s;
+      backdrop-filter: blur(4px);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-close:hover {
+      background: rgba(255, 60, 60, 0.85);
+      transform: rotate(90deg);
+    }
+
+    .modal-hero {
+      position: relative;
+      width: 100%;
+      min-height: 420px;
+      background: linear-gradient(135deg, #222 0%, #0a0a0a 100%);
+      overflow: hidden;
+    }
+
+    .modal-hero::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 180px;
+      background: linear-gradient(180deg, rgba(21, 21, 21, 0) 0%, #151515 100%);
+      pointer-events: none;
+    }
+
+    .modal-hero-img {
+      width: 100%;
+      height: 100%;
+      min-height: 420px;
+      object-fit: cover;
+      object-position: center 20%;
+      filter: blur(22px) brightness(0.45);
+      transform: scale(1.08);
+      display: block;
+    }
+
+    .modal-hero-content {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 28px;
+      align-items: end;
+      padding: 40px 40px 32px;
+    }
+
+    .modal-poster {
+      width: 220px;
+      aspect-ratio: 2/3;
+      background: #2a2a2a;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      align-self: end;
+    }
+
+    .modal-poster img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .modal-poster .no-poster {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .modal-meta {
+      align-self: end;
+      padding-bottom: 4px;
+    }
+
+    .modal-title {
+      font-size: 30px;
+      margin: 0 0 10px;
+      line-height: 1.25;
+      letter-spacing: 0.5px;
+      word-break: break-word;
+    }
+
+    .modal-subrow {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      align-items: center;
+      margin-bottom: 14px;
+      color: #c9c9c9;
+      font-size: 14px;
+    }
+
+    .modal-score {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: rgba(251, 191, 36, 0.12);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      color: #fbbf24;
+      font-weight: 600;
+      font-size: 14px;
+      border-radius: 999px;
+    }
+
+    .modal-genres {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .modal-genre {
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #e6e6e6;
+      letter-spacing: 0.3px;
+    }
+
+    .modal-body {
+      padding: 28px 40px 40px;
+      display: grid;
+      gap: 32px;
+    }
+
+    .section-divider {
+      height: 1px;
+      border: none;
+      background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.12) 20%, rgba(255, 255, 255, 0.12) 80%, transparent 100%);
+      margin: 0;
+      padding: 0;
+    }
+
+    .modal-section-title {
+      margin: 0 0 12px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #f5c518;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .modal-section-title::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 16px;
+      background: #f5c518;
+      border-radius: 2px;
+    }
+
+    .modal-overview {
+      margin: 0;
+      font-size: 14.5px;
+      line-height: 1.85;
+      color: #d3d3d3;
+    }
+
+    .modal-credits-row {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .modal-credit-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: #888;
+      margin: 0 0 10px;
+    }
+
+    /* ---------- 导演：独立一行 + 前缀 ---------- */
+    .director-line {
+      font-size: 15.5px;
+      color: #f0f0f0;
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+
+    .director-line .director-label {
+      display: inline-block;
+      padding: 3px 10px;
+      margin-right: 12px;
+      border-radius: 6px;
+      background: rgba(245, 197, 24, 0.1);
+      color: #f5c518;
+      font-size: 12px;
+      letter-spacing: 1.5px;
+      font-weight: 600;
+      border: 1px solid rgba(245, 197, 24, 0.2);
+      vertical-align: middle;
+    }
+
+    .director-line .director-name {
+      font-weight: 500;
+      color: #fff;
+      vertical-align: middle;
+    }
+
+    /* ---------- 演员：头像 + 姓名 水平卡片（8人，flex-wrap）---------- */
+    .actor-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 18px;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .actor-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 14px 6px 6px;
+      min-width: 170px;
+      max-width: calc((100% - 54px) / 4);
+      /* 桌面每 4 个一行（gap 18×3 = 54） */
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 999px;
+      /* 胶囊形 */
+      transition: background .2s, transform .2s, border-color .2s;
+    }
+
+    .actor-card:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(245, 197, 24, 0.25);
+      transform: translateY(-1px);
+    }
+
+    .actor-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: #2a2a2a;
+      border: 2px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+    }
+
+    .actor-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .avatar-fallback {
+      width: 100%;
+      height: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      border-radius: 50%;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    }
+
+    /* 8 色调色板（按演员索引循环取，保证色差足够不单调） */
+    .avatar-fallback.c-0 {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+    }
+
+    .avatar-fallback.c-1 {
+      background: linear-gradient(135deg, #ec4899, #be185d);
+    }
+
+    .avatar-fallback.c-2 {
+      background: linear-gradient(135deg, #10b981, #047857);
+    }
+
+    .avatar-fallback.c-3 {
+      background: linear-gradient(135deg, #f59e0b, #b45309);
+    }
+
+    .avatar-fallback.c-4 {
+      background: linear-gradient(135deg, #06b6d4, #0e7490);
+    }
+
+    .avatar-fallback.c-5 {
+      background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    }
+
+    .avatar-fallback.c-6 {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+    }
+
+    .avatar-fallback.c-7 {
+      background: linear-gradient(135deg, #14b8a6, #0f766e);
+    }
+
+    .actor-meta {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .actor-name {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .actor-char {
+      font-size: 11.5px;
+      color: #8a8a8a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 2px;
+    }
+
+    /* ---------- 推荐语：弹窗最底部 + 高区分度特殊背景 ---------- */
+    .modal-recommendation {
+      position: relative;
+      margin: 8px 0 0;
+      padding: 24px 28px;
+      /* 深色+金色强对比渐变背景，既醒目又不刺眼 */
+      background:
+        radial-gradient(ellipse at top left, rgba(245, 197, 24, 0.14), transparent 60%),
+        linear-gradient(135deg, #1c1708 0%, #120f05 100%);
+      border: 1px solid rgba(245, 197, 24, 0.22);
+      border-left: 5px solid #f5c518;
+      border-radius: 4px 14px 14px 4px;
+      font-size: 15.5px;
+      line-height: 2.0;
+      color: #f2f2f2;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02), 0 12px 30px rgba(0, 0, 0, 0.35);
+    }
+
+    /* 右上角金色角标已移除 */
+    .modal-recommendation::after {
+      /* 左上方大号引号装饰 */
+      content: "\201C";
+      position: absolute;
+      top: -28px;
+      left: 14px;
+      font-size: 96px;
+      line-height: 1;
+      color: rgba(245, 197, 24, 0.18);
+      font-family: Georgia, serif;
+      pointer-events: none;
+    }
+
+    .modal-recommendation .heart-line {
+      display: block;
+      margin-bottom: 10px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 16px;
+      letter-spacing: 0.2px;
+    }
+
+    .modal-recommendation .hardcore-line {
+      display: block;
+      color: #d9d9d9;
+    }
+
+    .modal-loading {
+      padding: 60px 20px;
+      text-align: center;
+      color: #9aa0a6;
+      font-size: 15px;
+    }
+
+    .modal-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #333;
+      border-top-color: #fbbf24;
+      border-radius: 50%;
+      margin: 0 auto 18px;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .modal-error {
+      padding: 40px 24px;
+      text-align: center;
+      color: #fca5a5;
+    }
+
+    /* --- 响应式：窄屏 --- */
+    @media (max-width: 720px) {
+      .modal-hero-content {
+        grid-template-columns: 120px 1fr;
+        padding: 28px 20px 20px;
+        gap: 18px;
+      }
+
+      .modal-poster {
+        width: 120px;
+      }
+
+      .modal-title {
+        font-size: 22px;
+      }
+
+      .modal-body {
+        padding: 20px 20px 30px;
+        gap: 24px;
+      }
+
+      .modal-backdrop {
+        padding: 0;
+      }
+
+      .modal {
+        max-height: 100vh;
+        border-radius: 0;
+      }
+
+      .modal-scroll {
+        max-height: 100vh;
+      }
+
+      .modal-close {
+        top: 10px;
+        right: 10px;
+        width: 34px;
+        height: 34px;
+        font-size: 18px;
+      }
+
+      /* 演员列表：窄屏改为每 1–2 个一行，头像变小 */
+      .actor-list {
+        gap: 10px 12px;
+      }
+
+      .actor-card {
+        min-width: calc(50% - 6px);
+        max-width: 100%;
+        padding: 4px 12px 4px 4px;
+      }
+
+      .actor-avatar {
+        width: 38px;
+        height: 38px;
+      }
+
+      .avatar-fallback {
+        font-size: 14px;
+      }
+
+      .actor-name {
+        font-size: 12.5px;
+      }
+
+      .actor-char {
+        font-size: 10.5px;
+      }
+
+      /* 导演行：窄屏标签换行到文字上方单独一行 */
+      .director-line .director-label {
+        margin-right: 0;
+        margin-bottom: 6px;
+        display: inline-block;
+      }
+
+      .director-line .director-name {
+        display: block;
+        padding-left: 0;
+      }
+
+      /* 推荐语：窄屏内边距缩小 */
+      .modal-recommendation {
+        padding: 20px 18px;
+        font-size: 14.5px;
+        line-height: 1.9;
+      }
+
+      .modal-recommendation::after {
+        font-size: 72px;
+        top: -20px;
+        left: 10px;
+      }
+
+      .modal-recommendation::before {
+        font-size: 10px;
+        top: 8px;
+        right: 10px;
+        letter-spacing: 1px;
+      }
+
+      .modal-recommendation .heart-line {
+        font-size: 15px;
+      }
+    }
+  </style>
+
+  <style>
+    /* ============================================================
+       心情助手：右下角悬浮球 + 面板
+       ============================================================ */
+    .mood-fab {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 900;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 1px solid rgba(245, 197, 24, 0.4);
+      background: linear-gradient(145deg, #1f1a08, #141005);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      transition: transform .2s var(--ease), box-shadow .2s;
+    }
+
+    .mood-fab:hover {
+      transform: translateY(-3px) scale(1.04);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .mood-fab-emoji {
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .mood-fab-dot {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--gold);
+      animation: moodPulse 2.2s infinite;
+    }
+
+    @keyframes moodPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(245, 197, 24, .5); }
+      50% { box-shadow: 0 0 0 6px rgba(245, 197, 24, 0); }
+    }
+
+    .mood-panel {
+      position: fixed;
+      right: 22px;
+      bottom: 90px;
+      z-index: 950;
+      width: 380px;
+      max-width: calc(100vw - 32px);
+      max-height: min(72vh, 640px);
+      display: flex;
+      flex-direction: column;
+      background: #151515;
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 16px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, .7);
+      overflow: hidden;
+      transform: translateY(14px) scale(.98);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform .28s var(--ease), opacity .28s var(--ease);
+    }
+
+    .mood-panel.active {
+      transform: none;
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .mood-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px 10px;
+    }
+
+    .mood-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: .3px;
+    }
+
+    .mood-close {
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, .06);
+      color: #bbb;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background .2s;
+    }
+
+    .mood-close:hover {
+      background: rgba(255, 60, 60, .7);
+      color: #fff;
+    }
+
+    .mood-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 4px 18px 12px;
+    }
+
+    .mood-chip {
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .1);
+      color: #ddd;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .18s, border-color .18s, color .18s, transform .12s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .mood-chip:hover {
+      border-color: rgba(245, 197, 24, .45);
+      color: var(--gold);
+    }
+
+    .mood-chip:active {
+      transform: translateY(1px);
+    }
+
+    .mood-input-row {
+      display: flex;
+      gap: 8px;
+      padding: 0 18px 14px;
+    }
+
+    .mood-input-row input {
+      flex: 1;
+      height: 40px;
+      padding: 0 14px;
+      font-size: 14px;
+      color: #fff;
+      background: #1b1b1b;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .mood-input-row input:focus {
+      border-color: var(--gold);
+    }
+
+    .mood-input-row input::placeholder {
+      color: #666;
+    }
+
+    .mood-send {
+      height: 40px;
+      padding: 0 18px;
+      border: none;
+      border-radius: 10px;
+      background: var(--gold);
+      color: #111;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: filter .2s;
+    }
+
+    .mood-send:hover {
+      filter: brightness(1.05);
+    }
+
+    .mood-body {
+      overflow-y: auto;
+      padding: 4px 18px 16px;
+      flex: 1;
+      min-height: 120px;
+    }
+
+    .mood-body::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .mood-body::-webkit-scrollbar-thumb {
+      background: #333;
+      border-radius: 8px;
+    }
+
+    .mood-hint {
+      color: #777;
+      font-size: 13px;
+      text-align: center;
+      padding: 24px 0;
+      line-height: 1.7;
+    }
+
+    .mood-opener {
+      font-size: 14px;
+      line-height: 1.75;
+      color: #f2e3b8;
+      background: linear-gradient(135deg, rgba(245, 197, 24, .08), transparent);
+      border-left: 3px solid var(--gold);
+      padding: 10px 12px;
+      border-radius: 4px 10px 10px 4px;
+      margin: 2px 0 14px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .mood-opener .cursor {
+      color: var(--gold);
+      animation: blink 1s steps(1) infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    .mood-thinking {
+      padding: 26px 0;
+      text-align: center;
+    }
+
+    .mood-dots {
+      display: inline-flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .mood-dots i {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+      animation: moodBounce 1.2s infinite;
+    }
+
+    .mood-dots i:nth-child(2) { animation-delay: .15s; }
+    .mood-dots i:nth-child(3) { animation-delay: .3s; }
+
+    @keyframes moodBounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: .5; }
+      30% { transform: translateY(-8px); opacity: 1; }
+    }
+
+    .mood-thinking-text {
+      color: #999;
+      font-size: 13px;
+    }
+
+    .mood-item {
+      display: flex;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      background: rgba(255, 255, 255, .02);
+      border: 1px solid rgba(255, 255, 255, .05);
+      transition: background .18s, border-color .18s, transform .15s;
+      margin-bottom: 8px;
+    }
+
+    .mood-item:hover {
+      background: rgba(255, 255, 255, .05);
+      border-color: rgba(245, 197, 24, .3);
+    }
+
+    .mood-thumb {
+      width: 54px;
+      aspect-ratio: 2 / 3;
+      border-radius: 8px;
+      overflow: hidden;
+      flex-shrink: 0;
+      background: #2a2a2a;
+      position: relative;
+    }
+
+    .mood-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .mood-item-meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 3px;
+    }
+
+    .mood-item-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mood-item-sub {
+      font-size: 12px;
+      color: #999;
+      line-height: 1.5;
+    }
+
+    .mood-item-reason {
+      font-size: 12.5px;
+      color: #e9c76b;
+      line-height: 1.55;
+      word-break: break-word;
+    }
+
+    .mood-actions {
+      display: flex;
+      gap: 10px;
+      padding: 0 18px 14px;
+    }
+
+    .mood-actions button {
+      flex: 1;
+      height: 36px;
+      border-radius: 10px;
+      font-size: 13px;
+      cursor: pointer;
+      background: #242424;
+      border: 1px solid #2e2e2e;
+      color: #ccc;
+      transition: background .18s;
+    }
+
+    .mood-actions button:hover {
+      background: #2d2d2d;
+    }
+  </style>
+<style>
+.logout-link{display:none!important;}
+#moodFab,#moodPanel{display:none!important;}
+</style>
+</head>
+
+<body>
+  <a href="/logout" class="logout-link" title="退出登录" style="position:fixed;top:12px;right:14px;z-index:900;font-size:12px;color:#9aa0a6;background:rgba(20,22,28,.85);border:1px solid #2a2a2a;border-radius:999px;padding:5px 14px;text-decoration:none;">退出</a>
+  <div class="page">
+    <header class="header">
+      <h1>电影推荐墙</h1>
+      <p>精选高分影片，给你优质观影灵感</p>
+      <span id="status" class="status">加载中…</span>
+    </header>
+
+    <div id="searchMeta" class="search-meta"></div>
+
+    <div class="filter-bar" aria-label="搜索与筛选">
+      <div class="filter-item">
+        <input id="q" type="search" placeholder="搜索片名…" aria-label="搜索片名" autocomplete="off" />
+        <button id="searchBtn" class="filter-btn" type="button">搜索</button>
+        <button id="clearBtn" class="filter-btn clear-btn" type="button">清空</button>
+      </div>
+      <div class="filter-item">
+        <label for="minYear">年份</label>
+        <select id="minYear">
+          <option value="">不限</option>
+          <option value="1970">1970</option>
+          <option value="1980">1980</option>
+          <option value="1990">1990</option>
+          <option value="2000">2000</option>
+          <option value="2005">2005</option>
+          <option value="2010">2010</option>
+          <option value="2015">2015</option>
+          <option value="2018">2018</option>
+          <option value="2019">2019</option>
+          <option value="2020">2020</option>
+          <option value="2021">2021</option>
+          <option value="2022">2022</option>
+          <option value="2023">2023</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+        </select>
+        <span class="year-sep">—</span>
+        <select id="maxYear">
+          <option value="">不限</option>
+          <option value="1970">1970</option>
+          <option value="1980">1980</option>
+          <option value="1990">1990</option>
+          <option value="2000">2000</option>
+          <option value="2005">2005</option>
+          <option value="2010">2010</option>
+          <option value="2015">2015</option>
+          <option value="2018">2018</option>
+          <option value="2019">2019</option>
+          <option value="2020">2020</option>
+          <option value="2021">2021</option>
+          <option value="2022">2022</option>
+          <option value="2023">2023</option>
+          <option value="2024">2024</option>
+          <option value="2025">2025</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label for="minRating">评分</label>
+        <select id="minRating">
+          <option value="">不限</option>
+          <option value="7.0">7.0+</option>
+          <option value="7.5">7.5+</option>
+          <option value="8.0">8.0+</option>
+          <option value="8.5">8.5+</option>
+          <option value="9.0">9.0+</option>
+        </select>
+      </div>
+      <div class="filter-item">
+        <label for="genre">类型</label>
+        <select id="genre">
+          <option value="">全部</option>
+          <option value="28">动作</option>
+          <option value="12">冒险</option>
+          <option value="16">动画</option>
+          <option value="35">喜剧</option>
+          <option value="80">犯罪</option>
+          <option value="99">纪录片</option>
+          <option value="18">剧情</option>
+          <option value="10751">家庭</option>
+          <option value="14">奇幻</option>
+          <option value="27">恐怖</option>
+          <option value="10402">音乐</option>
+          <option value="9648">悬疑</option>
+          <option value="10749">爱情</option>
+          <option value="878">科幻</option>
+          <option value="53">惊悚</option>
+          <option value="10752">战争</option>
+          <option value="37">西部</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="grid" class="grid">
+      <!-- Loading skeletons -->
+      <div class="skeleton">
+        <div class="sk-poster"></div>
+        <div class="sk-body">
+          <div class="sk-line short"></div>
+          <div class="sk-line"></div>
+          <div class="sk-line mid"></div>
+        </div>
+      </div>
+      <div class="skeleton">
+        <div class="sk-poster"></div>
+        <div class="sk-body">
+          <div class="sk-line short"></div>
+          <div class="sk-line"></div>
+          <div class="sk-line mid"></div>
+        </div>
+      </div>
+      <div class="skeleton">
+        <div class="sk-poster"></div>
+        <div class="sk-body">
+          <div class="sk-line short"></div>
+          <div class="sk-line"></div>
+          <div class="sk-line mid"></div>
+        </div>
+      </div>
+      <div class="skeleton">
+        <div class="sk-poster"></div>
+        <div class="sk-body">
+          <div class="sk-line short"></div>
+          <div class="sk-line"></div>
+          <div class="sk-line mid"></div>
+        </div>
+      </div>
+      <div class="skeleton">
+        <div class="sk-poster"></div>
+        <div class="sk-body">
+          <div class="sk-line short"></div>
+          <div class="sk-line"></div>
+          <div class="sk-line mid"></div>
+        </div>
+      </div>
+    </div>
+
+    <nav id="pager" class="pager" aria-label="分页" hidden>
+      <!-- 中：分页按钮组 -->
+      <div class="pager-group pager-group--nav">
+        <button id="pagerFirst" class="pager-btn pager-edge pager-edge--side" type="button" title="首页（Home）"
+          aria-label="首页">«</button>
+        <button id="pagerPrev" class="pager-btn pager-edge" type="button" title="上一页（←）" aria-label="上一页">‹</button>
+        <div id="pageNumbers" class="page-numbers" role="group" aria-label="页码"></div>
+        <button id="pagerNext" class="pager-btn pager-edge" type="button" title="下一页（→）" aria-label="下一页">›</button>
+        <button id="pagerLast" class="pager-btn pager-edge pager-edge--side" type="button" title="末页（End）"
+          aria-label="末页">»</button>
+      </div>
+
+      <!-- 右：状态文本 + 每页条数 -->
+      <div class="pager-group pager-group--status">
+        <span id="pagerStatus" class="pager-status">第 0 / 0 页 · 共 0 部</span>
+        <label class="pager-label" for="pageSize">每页</label>
+        <select id="pageSize" class="pager-select" aria-label="每页条数">
+          <option value="12">12</option>
+          <option value="24">24</option>
+          <option value="48">48</option>
+          <option value="96">96</option>
+        </select>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ============================================================
+       电影详情 Modal：遮罩层 + 内容区 + 关闭按钮
+       ============================================================ -->
+  <div id="modalBackdrop" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle"
+    aria-hidden="true">
+    <div class="modal" id="modalBox" role="document">
+      <button id="modalClose" class="modal-close" type="button" aria-label="关闭" title="关闭（ESC）">✕</button>
+      <div id="modalScroll" class="modal-scroll">
+        <div id="modalLoading" class="modal-loading" style="display:none;">
+          <div class="modal-spinner"></div>
+          正在从 TMDB 拉取电影详情…
+        </div>
+        <div id="modalError" class="modal-error" style="display:none;"></div>
+        <div id="modalContent" style="display:none;">
+          <!-- 英雄区：模糊海报背景 + 清晰海报 + 基本信息 -->
+          <section class="modal-hero">
+            <img id="heroBackdrop" class="modal-hero-img" alt="" />
+            <div class="modal-hero-content">
+              <div class="modal-poster">
+                <img id="modalPosterImg" alt="" />
+                <div id="modalPosterFallback" class="no-poster" style="display:none;">暂无海报</div>
+              </div>
+              <div class="modal-meta">
+                <h2 id="modalTitle" class="modal-title"></h2>
+                <div class="modal-subrow">
+                  <span id="modalYear">—</span>
+                  <span id="modalScore" class="modal-score" style="display:none;"><span>★</span><b
+                      id="modalScoreNum">0.0</b>/10</span>
+                </div>
+                <div id="modalGenres" class="modal-genres"></div>
+              </div>
+            </div>
+          </section>
+
+          <section class="modal-body">
+            <!-- ① 剧情简介 -->
+            <div>
+              <h3 class="modal-section-title">剧情简介 Overview</h3>
+              <p id="modalOverview" class="modal-overview"></p>
+            </div>
+
+            <hr class="section-divider" />
+
+            <!-- ② 导演：独立一行，"导演：XXX" 前缀格式 -->
+            <div>
+              <h4 class="modal-credit-label">主创团队 Crew</h4>
+              <p id="modalDirector" class="director-line">—</p>
+            </div>
+
+            <!-- ③ 演员：前 8 位，头像 + 姓名 水平卡片排列（flex-wrap） -->
+            <div>
+              <h4 class="modal-credit-label">主要演员 Top Cast（前 8 位）</h4>
+              <div id="modalCast" class="actor-list" role="list"></div>
+            </div>
+
+            <hr class="section-divider" />
+
+            <!-- ④ 推荐语：弹窗最底部 + 特殊背景强区分 -->
+            <div>
+              <h3 class="modal-section-title">为什么推荐你看</h3>
+              <div id="modalRecommendation" class="modal-recommendation"></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       心情助手：右下角悬浮球 + 面板
+       ============================================================ -->
+  <button id="moodFab" class="mood-fab" type="button" aria-label="打开心情助手" title="此刻想看点什么？">
+    <span class="mood-fab-emoji">🎬</span>
+    <span class="mood-fab-dot"></span>
+  </button>
+
+  <div id="moodPanel" class="mood-panel" aria-hidden="true">
+    <div class="mood-head">
+      <div class="mood-title">此刻，想看点什么？</div>
+      <button id="moodClose" class="mood-close" type="button" aria-label="关闭">✕</button>
+    </div>
+
+    <div class="mood-chips" id="moodChips"></div>
+
+    <div class="mood-input-row">
+      <input id="moodInput" type="text" placeholder="跟助手说说你现在的心情…" autocomplete="off" />
+      <button id="moodSend" class="mood-send" type="button">推荐</button>
+    </div>
+
+    <div id="moodBody" class="mood-body">
+      <div class="mood-hint">点一个心情词，或者自己写两句，我帮你挑。</div>
+    </div>
+  </div>
+
+  <script>
+    const PAGE_WINDOW = 1;                 // 当前页左右各显示多少页（不含首末页）
+    const grid = document.getElementById("grid");
+    const statusEl = document.getElementById("status");
+    const searchMeta = document.getElementById("searchMeta");
+
+    // ---- Flask 后端 API（app.py 提供的接口）----
+    const API_MOVIES = "/api/movies";
+    const API_SEARCH = "/api/search";
+    const API_FILTER = "/api/filter";
+    const DEFAULT_PAGE_SIZE = 24;
+    const PAGE_SIZE_OPTIONS = [12, 24, 48, 96];
+
+    // 搜索 / 筛选控件
+    const qInput = document.getElementById("q");
+    const searchBtn = document.getElementById("searchBtn");
+    const clearBtn = document.getElementById("clearBtn");
+    const minYearSel = document.getElementById("minYear");
+    const maxYearSel = document.getElementById("maxYear");
+    const minRatingSel = document.getElementById("minRating");
+    const genreSel = document.getElementById("genre");
+
+    // 分页状态
+    const pagerDom = {
+      root: document.getElementById("pager"),
+      first: document.getElementById("pagerFirst"),
+      prev: document.getElementById("pagerPrev"),
+      next: document.getElementById("pagerNext"),
+      last: document.getElementById("pagerLast"),
+      pageNumbers: document.getElementById("pageNumbers"),
+      status: document.getElementById("pagerStatus"),
+      pageSizeSel: document.getElementById("pageSize"),
+    };
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentTotal = 0;
+    // 标记翻页过渡中，避免重复触发
+    let pageTransitioning = false;
+    // 每页条数（可在分页条右侧切换；切换后回第 1 页）
+    let currentPageSize = DEFAULT_PAGE_SIZE;
+
+
+    // TMDB 类型 ID -> 中文名（用于筛选摘要和卡片标签）
+    const GENRE_NAMES = {
+      "28": "动作", "12": "冒险", "16": "动画", "35": "喜剧",
+      "80": "犯罪", "99": "纪录片", "18": "剧情", "10751": "家庭",
+      "14": "奇幻", "27": "恐怖", "10402": "音乐", "9648": "悬疑",
+      "10749": "爱情", "878": "科幻", "53": "惊悚", "10752": "战争", "37": "西部",
+    };
+    // TMDB 类型 ID -> 英文名（Modal 内展示英文类型；当 TMDB API 不可用时兜底）
+    const GENRE_NAMES_EN = {
+      "28": "Action", "12": "Adventure", "16": "Animation", "35": "Comedy",
+      "80": "Crime", "99": "Documentary", "18": "Drama", "10751": "Family",
+      "14": "Fantasy", "27": "Horror", "10402": "Music", "9648": "Mystery",
+      "10749": "Romance", "878": "Science Fiction", "53": "Thriller",
+      "10752": "War", "37": "Western",
+    };
+
+    // ============================================================
+    // 海报加载诊断角标（临时排查工具，问题解决后可删除）
+    // ============================================================
+    const diagBox = document.createElement("div");
+    diagBox.id = "posterDiag";
+    diagBox.style.cssText =
+      "position:fixed;right:10px;top:10px;z-index:99999;" +
+      "background:rgba(0,0,0,.82);color:#ffd700;font:12px/1.5 Consolas,monospace;" +
+      "padding:8px 12px;border-radius:8px;max-width:420px;white-space:pre-wrap;";
+    document.body.appendChild(diagBox);
+    let diagFailedUrls = [];
+    function updatePosterDiag() {
+      const imgs = Array.from(document.querySelectorAll(".poster-wrap img"));
+      const loaded = imgs.filter((i) => i.classList.contains("loaded")).length;
+      const failed = imgs.filter((i) => i.dataset.diagFailed === "1").length;
+      const pending = imgs.length - loaded - failed;
+      const lines = [
+        `海报: 共${imgs.length} 已加载${loaded} 失败${failed} 待加载${pending}`,
+      ];
+      diagFailedUrls.slice(-3).forEach((u) => lines.push("  失败: " + u));
+      diagBox.textContent = lines.join("\n");
+    }
+    window.addEventListener("error", (e) => {
+      diagBox.textContent = "JS错误: " + (e.message || String(e));
+    });
+
+    // 诊断角标可拖动（按住拖动到任意位置；松手即停，位置记录在内存中）
+    (function makeDiagDraggable() {
+      const box = diagBox;
+      let dragging = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;
+      box.addEventListener("pointerdown", (e) => {
+        if (e.pointerType === "mouse" && e.button !== 0) return;
+        dragging = true;
+        if (box.setPointerCapture) { try { box.setPointerCapture(e.pointerId); } catch (_) {} }
+        const rect = box.getBoundingClientRect();
+        origLeft = rect.left; origTop = rect.top;
+        startX = e.clientX; startY = e.clientY;
+        box.style.cursor = "grabbing";
+        box.style.userSelect = "none";
+        e.preventDefault();
+      });
+      box.addEventListener("pointermove", (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - startX, dy = e.clientY - startY;
+        let left = origLeft + dx, top = origTop + dy;
+        // 限制在视口内，避免拖出屏幕找不回来
+        const w = box.offsetWidth || 200, h = box.offsetHeight || 60;
+        left = Math.max(4, Math.min(left, window.innerWidth - w - 4));
+        top = Math.max(4, Math.min(top, window.innerHeight - h - 4));
+        box.style.left = left + "px";
+        box.style.top = top + "px";
+        box.style.right = "auto";
+        box.style.bottom = "auto";
+      });
+      const stop = () => {
+        if (!dragging) return;
+        dragging = false;
+        box.style.cursor = "grab";
+      };
+      box.addEventListener("pointerup", stop);
+      box.addEventListener("pointercancel", stop);
+      box.style.cursor = "grab";
+      box.style.touchAction = "none";
+    })();
+    // ============================================================
+
+    // ====================================================================
+    // ▼▼▼ TMDB 配置 —— 如换 Key 只改下面这一行 ▼▼▼
+    // ====================================================================
+    // TMDB API 通过后端代理访问（app.py 的 /api/tmdb/*），Key 只保存在服务端 .env，
+    // 不再硬编码在页面里。注意：此页面需经 Flask (http://127.0.0.1:5000/index.html) 打开，
+    // 直接以 file:// 打开时 TMDB 弹窗详情将不可用。
+    const TMDB_API_BASE = "/api/tmdb";
+    const TMDB_IMG_BASE = "https://image.tmdb.org/t/p";
+    // 详情海报大图尺寸 / 背景模糊图尺寸 / 卡片海报尺寸
+    const POSTER_SIZE_MODAL = "w500";
+    const POSTER_SIZE_CARD = "w342";
+    const BACKDROP_SIZE = "w1280";
+    // TMDB 请求缓存（避免重复点击同一卡片多次调 API）
+    //  - details / credits：默认语言（兜底）
+    //  - details_zh / credits_zh：language=zh-CN（演员中文名、中文简介、中文导演名、中文类型）
+    const TMDB_CACHE = { details: {}, credits: {}, details_zh: {}, credits_zh: {} };
+
+    /** 简单 sleep，用于 TMDB 两次请求之间节流（≥0.2s，项目约定） */
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    /**
+     * 调用 TMDB 接口（自动加 api_key，返回 promise<json>；失败抛异常）
+     * @param {string} path 如 /movie/278
+     * @param {Record<string,string>|undefined} qs 额外 query 参数
+     */
+    async function tmdbFetch(path, qs) {
+      const usp = new URLSearchParams();
+      // api_key 由后端代理 (/api/tmdb/*) 自动附加，前端不接触 Key
+      if (qs) for (const [k, v] of Object.entries(qs)) if (v !== undefined && v !== null && v !== "") usp.set(k, v);
+      const url = `${TMDB_API_BASE}${path}${path.includes("?") ? "&" : "?"}${usp.toString()}`;
+      const resp = await fetch(url, { method: "GET" });
+      // TMDB 429 限流友好提示
+      if (resp.status === 429) {
+        const wait = resp.headers.get("Retry-After") || "几秒";
+        throw new Error(`TMDB 请求过于频繁，请 ${wait} 后再试（HTTP 429）`);
+      }
+      if (resp.status === 401) throw new Error("TMDB API Key 无效，请在服务端 .env 检查 TMDB_API_KEY（HTTP 401）");
+      if (resp.status === 404) return null;
+      if (!resp.ok) throw new Error(`TMDB HTTP ${resp.status}`);
+      return resp.json();
+    }
+
+    /**
+     * 从本地演员库读取 credits（fetch_credits.py 抓取入库，中文）。
+     * 返回 credits 对象；本地没有该电影时返回 null（不抛异常）。
+     */
+    async function fetchLocalCredits(id) {
+      try {
+        const resp = await fetch(`/api/credits/${id}`);
+        if (!resp.ok) return null;
+        const c = await resp.json();
+        return (c && Array.isArray(c.cast)) ? c : null;
+      } catch (e) {
+        return null; // 本地库不可用不阻塞，交由 TMDB 兜底
+      }
+    }
+
+    /** 构造 TMDB 海报 URL；path 支持 TMDB 返回的 "/xxxxx.jpg" 或完整 URL；缺失返回 "" */
+    function buildTmdbImageUrl(path, size) {
+      if (!path) return "";
+      const s = String(path);
+      if (/^https?:/.test(s)) return s;
+      // 本地海报 / 后端代理等相对路径：原样使用，不做 TMDB 拼接
+      if (s.startsWith("/posters/") || s.startsWith("/api/")) return s;
+      const p = s.startsWith("/") ? s : "/" + s;
+      return `${TMDB_IMG_BASE}/${size}${p}`;
+    }
+
+    // TMDB 图片镜像链（直连 image.tmdb.org 不通/挂起时依次尝试），用于弹窗头像/海报/背景
+    const TMDB_IMG_MIRRORS = [
+      "https://wsrv.nl/?url=image.tmdb.org/t/p",
+      "https://images.weserv.nl/?url=image.tmdb.org/t/p",
+      "https://tmdb.aityp.com/t/p",
+    ];
+
+    /**
+     * 生成图片候选 URL 列表：[直连, 镜像1, 镜像2, ...]。
+     * 本地/相对路径只有自身一个候选；直连为空时返回 []。
+     */
+    function buildTmdbImageCandidates(path, size) {
+      const direct = buildTmdbImageUrl(path, size);
+      if (!direct) return [];
+      if (!/^https?:/.test(String(direct))) return [direct];
+      const p = String(path).startsWith("/") ? path : "/" + path;
+      return [direct].concat(TMDB_IMG_MIRRORS.map((m) => m + "/" + size + p));
+    }
+
+    /**
+     * 智能加载图片：按候选列表逐个尝试，出错或 4s 无响应（挂起）就换下一个；
+     * 全部失败时回调 onAllFail。成功时给元素加 .loaded 类。
+     */
+    function smartImg(el, candidates, onAllFail) {
+      let idx = 0;
+      let settled = false;
+      let timer = null;
+      const finish = (fn) => { settled = true; clearTimeout(timer); if (fn) fn(); };
+      const loadNext = () => {
+        if (settled) return;
+        if (idx >= candidates.length) { finish(onAllFail); return; }
+        const url = candidates[idx++];
+        el.onload = () => finish(() => el.classList.add("loaded"));
+        el.onerror = () => { clearTimeout(timer); loadNext(); };
+        el.src = url;
+        timer = setTimeout(() => {
+          // 4s 既没成功也没失败 → 判定挂起，换下一个候选
+          if (!settled && !el.complete) { clearTimeout(timer); loadNext(); }
+        }, 4000);
+      };
+      loadNext();
+    }
+
+    /** 渲染完演员列表后调用：给带 data-candidates 的头像跑智能加载 */
+    function hydrateCastAvatars() {
+      modalDom.cast.querySelectorAll("img[data-candidates]").forEach((img) => {
+        const fb = img.nextElementSibling;
+        let cands = [];
+        try { cands = JSON.parse(img.getAttribute("data-candidates") || "[]"); } catch (_) { cands = []; }
+        smartImg(img, cands, () => {
+          img.style.display = "none";
+          if (fb) fb.style.display = "flex";
+        });
+      });
+    }
+
+    /** 从 movie.genre_ids（例如 "28,12"）转成卡片上的中文 genre-tag 列表 HTML */
+    function buildGenreTagsHtmlZh(genre_ids) {
+      if (!genre_ids) return "";
+      const ids = String(genre_ids)
+        .split(/[,\s;|]+/)
+        .map(s => s.trim())
+        .filter(Boolean);
+      if (!ids.length) return "";
+      const tags = ids
+        .filter(id => GENRE_NAMES[id])
+        .slice(0, 3) // 最多 3 个标签，避免卡片过长
+        .map(id => `<span class="genre-tag">${escapeHtml(GENRE_NAMES[id])}</span>`);
+      if (!tags.length) return "";
+      return `<div class="genre-tags">${tags.join("")}</div>`;
+    }
+
+    function setStatus(text, cls = "") {
+      statusEl.className = "status " + cls;
+      statusEl.textContent = text;
+    }
+
+    function escapeHtml(str) {
+      if (str == null) return "";
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    /**
+     * 格式化推荐语：
+     *   【走心一句】...     -> <span class="heart-line">【走心一句】...</span>
+     *   【硬核视角】...     -> <span class="hardcore-line">【硬核视角】...</span>
+     * 其他文本原样保留。
+     */
+    function formatRecommendation(text) {
+      if (!text) return "";
+      const lines = String(text).split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const parts = lines.map(line => {
+        if (/^【走心一句】/.test(line)) {
+          return `<span class="heart-line">${escapeHtml(line)}</span>`;
+        }
+        if (/^【硬核视角】/.test(line)) {
+          return `<span class="hardcore-line">${escapeHtml(line)}</span>`;
+        }
+        return escapeHtml(line);
+      });
+      return parts.join("");
+    }
+
+    /**
+     * 双语名格式化（演员 / 导演共用）：
+     *   ① 中文名与英文名均存在且 不同 → "英文原名 (中文译名)"（例："Tim Robbins (蒂姆·罗宾斯)"）
+     *   ② 两者相同（华人演员 original_name 常与中文 name 一致）→ 仅显示中文名
+     *   ③ 缺其中一个（例如 zh-CN 请求失败、或某人 TMDB 无翻译）→ 只返回存在的那个
+     *   ④ 都空 → 返回 ""
+     */
+    function formatDualName(enName, zhName) {
+      const en = (enName == null ? "" : String(enName)).trim();
+      const zh = (zhName == null ? "" : String(zhName)).trim();
+      if (en && zh) {
+        if (en === zh) return zh;
+        return `${en} (${zh})`;
+      }
+      return en || zh || "";
+    }
+
+    /**
+     * 导演行 HTML：固定前缀 "导演：" 标签 + 导演姓名（调用方需先用 formatDualName 格式化好单/多位导演名）。
+     * 若 names 为空，返回占位 "—"。
+     */
+    function buildDirectorHtml(names) {
+      const n = (names == null ? "" : String(names)).trim();
+      if (!n) return "—";
+      return (
+        `<span class="director-label">导演：</span>` +
+        `<span class="director-name">${escapeHtml(n)}</span>`
+      );
+    }
+
+    /**
+     * 演员卡片 HTML：头像（无图时首字母圆形 fallback）+ 姓名（支持"英文名 (中文名)"）+ 角色小字。
+     * @param {{enName:string, zhName:string, character?:string, profile_path?:string}} actor
+     * @param {number} index 用于取色板（0-7 循环）
+     */
+    function buildActorCardHtml(actor, index) {
+      const enName = actor.enName || "";
+      const zhName = actor.zhName || "";
+      const displayName = formatDualName(enName, zhName) || (enName || zhName || "");
+      const character = actor.character ? String(actor.character).trim() : "";
+      const profile = actor.profile_path || "";
+      const avatarCands = profile ? buildTmdbImageCandidates(profile, "w185") : [];
+
+      // 首字母 fallback：从实际显示名 displayName 取首个非空白字符（中文取字，英文取首字母）
+      let initial = "?";
+      for (const ch of String(displayName || "")) {
+        if (/\S/.test(ch)) { initial = ch; break; }
+      }
+      const colorClass = `c-${Number(index || 0) % 8}`;
+
+      // 头像：src 由 hydrateCastAvatars 用 smartImg 智能加载（直连→镜像→首字母兜底）
+      const avatarHtml = avatarCands.length
+        ? `<img data-candidates='${JSON.stringify(avatarCands)}' alt="${escapeHtml(displayName)}">` +
+        `<span class="avatar-fallback ${colorClass}" style="display:none;">${escapeHtml(initial)}</span>`
+        : `<span class="avatar-fallback ${colorClass}">${escapeHtml(initial)}</span>`;
+
+      const charHtml = character
+        ? `<span class="actor-char" title="${escapeHtml(character)}">${escapeHtml(character)}</span>`
+        : "";
+
+      return (
+        `<div class="actor-card" role="listitem" title="${escapeHtml(displayName + (character ? " / " + character : ""))}">` +
+        `<div class="actor-avatar">${avatarHtml}</div>` +
+        `<div class="actor-meta">` +
+        `<span class="actor-name">${escapeHtml(displayName)}</span>` +
+        charHtml +
+        `</div>` +
+        `</div>`
+      );
+    }
+
+    function createCard(movie) {
+      // 兼容后端返回 poster_path 或 poster（用户示例中写的是 poster）
+      const poster = movie.poster_path || movie.poster || "";
+      const title = movie.title || "未知片名";
+      const year = movie.year ? String(movie.year) : "—";
+      const rec = movie.recommendation || "";
+
+      const ratingRaw = movie.rating;
+      const hasRating = ratingRaw !== null && ratingRaw !== undefined && !isNaN(ratingRaw) && Number(ratingRaw) > 0;
+      const ratingVal = hasRating ? Number(ratingRaw).toFixed(1) : "";
+      const ratingBadge = hasRating
+        ? `<div class="rating-badge" title="TMDB 用户评分 ${ratingVal}/10"><span class="star" aria-hidden="true">★</span>${escapeHtml(ratingVal)}</div>`
+        : "";
+
+      // 卡片底部显示中文类型标签（从本地 movie.genre_ids 解析，最多 3 个）
+      const genreTags = buildGenreTagsHtmlZh(movie.genre_ids);
+
+      const recHtml = rec.trim()
+        ? formatRecommendation(rec)
+        : `<span style="color:var(--text-dim);opacity:0.75;font-style:italic;">🎬 暂无推荐语（可运行 generate_all.py 一键生成）</span>`;
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `
+      <div class="poster-wrap">
+        ${ratingBadge}
+        <span class="poster-placeholder-text">暂无海报</span>
+        ${poster ? `<img src="${poster}" alt="${escapeHtml(title)}" loading="lazy" referrerpolicy="no-referrer" />` : ""}
+      </div>
+      <div class="body">
+        <div class="title-row">
+          <h3 class="title" title="${escapeHtml(title)}">${escapeHtml(title)}</h3>
+          <span class="year">${escapeHtml(year)}</span>
+        </div>
+        <p class="recommendation">${recHtml}</p>
+        ${genreTags}
+      </div>
+    `;
+
+      // 图片加载：成功显示，失败保持灰色占位；缓存已命中的图同步补 .loaded
+      if (poster) {
+        const img = card.querySelector("img");
+        const markLoaded = () => { img.classList.add("loaded"); updatePosterDiag(); };
+        img.onload = markLoaded;
+        img.onerror = () => {
+          // 失败：移除 img，保留 CSS 灰色占位 + 文字；记录到诊断角标
+          img.dataset.diagFailed = "1";
+          if (diagFailedUrls.length < 20) diagFailedUrls.push(poster);
+          updatePosterDiag();
+          img.remove();
+        };
+        if (img.complete && img.naturalWidth > 0) markLoaded();
+      }
+
+      // ——— 修复：卡片点击打开详情 Modal ———
+      card.addEventListener("click", () => openModal(movie));
+      // 无障碍：支持键盘 Enter / 空格 触发
+      card.setAttribute("tabindex", "0");
+      card.setAttribute("role", "button");
+      card.setAttribute("aria-label", `查看《${title}》详情`);
+      card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openModal(movie);
+        }
+      });
+
+      return card;
+    }
+
+    function renderSkeletons(count = 5) {
+      grid.innerHTML = "";
+      for (let i = 0; i < count; i++) {
+        const s = document.createElement("div");
+        s.className = "skeleton";
+        s.innerHTML = `<div class="sk-poster"></div><div class="sk-body"><div class="sk-line short"></div><div class="sk-line"></div><div class="sk-line mid"></div></div>`;
+        grid.appendChild(s);
+      }
+    }
+
+    function renderEmpty(msg) {
+      const defaultMsg = "未找到相关电影";
+      const text = msg || defaultMsg;
+      grid.innerHTML = `<div class="empty">${escapeHtml(text)}</div>`;
+    }
+
+    function setSearchMeta(html) {
+      searchMeta.innerHTML = html || "";
+    }
+
+    function renderError(msg) {
+      grid.innerHTML = `<div class="error-box">
+      <div><b>请求失败</b></div>
+      <div style="margin-top:8px;font-size:13px;opacity:.9;">${escapeHtml(msg)}</div>
+      <div style="margin-top:14px;font-size:12px;color:#aaa;">
+        提示：请确认后端已启动 <code style="background:#222;padding:2px 6px;border-radius:4px;">py app.py</code>（端口 5000）
+      </div>
+    </div>`;
+    }
+
+    function renderMovies(data, emptyMsg) {
+      grid.innerHTML = "";
+      if (!data || data.length === 0) {
+        renderEmpty(emptyMsg);
+        return;
+      }
+      const frag = document.createDocumentFragment();
+      data.forEach(m => frag.appendChild(createCard(m)));
+      grid.appendChild(frag);
+    }
+
+    // ============================================================
+    // 电影详情 Modal 逻辑
+    // ============================================================
+    const modalDom = {
+      backdrop: document.getElementById("modalBackdrop"),
+      box: document.getElementById("modalBox"),
+      scroll: document.getElementById("modalScroll"),
+      closeBtn: document.getElementById("modalClose"),
+      loading: document.getElementById("modalLoading"),
+      error: document.getElementById("modalError"),
+      content: document.getElementById("modalContent"),
+      heroBack: document.getElementById("heroBackdrop"),
+      posterImg: document.getElementById("modalPosterImg"),
+      posterFall: document.getElementById("modalPosterFallback"),
+      title: document.getElementById("modalTitle"),
+      year: document.getElementById("modalYear"),
+      scoreWrap: document.getElementById("modalScore"),
+      scoreNum: document.getElementById("modalScoreNum"),
+      genres: document.getElementById("modalGenres"),
+      overview: document.getElementById("modalOverview"),
+      director: document.getElementById("modalDirector"),
+      cast: document.getElementById("modalCast"),
+      rec: document.getElementById("modalRecommendation"),
+    };
+    let lastFocusedBeforeModal = null;
+
+    function closeModal() {
+      modalDom.backdrop.classList.remove("active");
+      modalDom.backdrop.setAttribute("aria-hidden", "true");
+      // 内容复位（便于 GC，也避免开新卡片时闪旧内容）
+      modalDom.content.style.display = "none";
+      modalDom.loading.style.display = "none";
+      modalDom.error.style.display = "none";
+      // 恢复 body 滚动
+      document.body.style.overflow = "";
+      // 焦点返回
+      if (lastFocusedBeforeModal && typeof lastFocusedBeforeModal.focus === "function") {
+        try { lastFocusedBeforeModal.focus(); } catch (_) { }
+      }
+      lastFocusedBeforeModal = null;
+    }
+
+    /**
+     * 从 TMDB details + credits 返回的 genres 数组生成英文类型标签 HTML。
+     * 兜底：如果 TMDB API 失败（例如 404 或 key 无效），就用本地 GENRE_NAMES_EN + movie.genre_ids。
+     */
+    function renderGenreEnTags(tmdbGenresArr, fallbackGenreIdsStr) {
+      const arr = Array.isArray(tmdbGenresArr) && tmdbGenresArr.length
+        ? tmdbGenresArr.map(g => (g && g.name ? String(g.name) : "").trim()).filter(Boolean)
+        : [];
+      // 兜底：本地映射按 genre_ids
+      if (!arr.length && fallbackGenreIdsStr) {
+        fallbackGenreIdsStr.split(/[,\s;|]+/).map(s => s.trim()).filter(Boolean).forEach(id => {
+          if (GENRE_NAMES_EN[id]) arr.push(GENRE_NAMES_EN[id]);
+        });
+      }
+      if (!arr.length) {
+        modalDom.genres.innerHTML = "";
+        return;
+      }
+      modalDom.genres.innerHTML = arr
+        .map(n => `<span class="modal-genre">${escapeHtml(n)}</span>`)
+        .join("");
+    }
+
+    function renderMainPoster(posterPath) {
+      const cands = buildTmdbImageCandidates(posterPath, POSTER_SIZE_MODAL);
+      if (cands.length) {
+        modalDom.posterImg.style.display = "block";
+        modalDom.posterFall.style.display = "none";
+        smartImg(modalDom.posterImg, cands, () => {
+          modalDom.posterImg.style.display = "none";
+          modalDom.posterFall.style.display = "flex";
+        });
+      } else {
+        modalDom.posterImg.removeAttribute("src");
+        modalDom.posterImg.style.display = "none";
+        modalDom.posterFall.style.display = "flex";
+      }
+      // 背景大图：优先用 backdrop_path；没有就退化为海报 path，再退化纯色
+      const backdropCands = buildTmdbImageCandidates(posterPath, BACKDROP_SIZE);
+      return backdropCands;
+    }
+
+    async function openModal(movie) {
+      if (!movie) return;
+      const id = movie.id;
+      // 记录当前焦点（无障碍）
+      lastFocusedBeforeModal = document.activeElement;
+
+      // 基本元信息：先从本地 movie 里先填一部分，保证秒开
+      modalDom.title.textContent = movie.title || "未知片名";
+      modalDom.year.textContent = (movie.year ? movie.year : "—") + " 年上映";
+      // 评分：优先本地 movie.rating；稍后如果 TMDB 返回了更准的再覆盖
+      const rLocal = (movie.rating !== null && movie.rating !== undefined && !isNaN(movie.rating)) ? Number(movie.rating) : null;
+      if (rLocal !== null && rLocal > 0) {
+        modalDom.scoreWrap.style.display = "inline-flex";
+        modalDom.scoreNum.textContent = rLocal.toFixed(1);
+      } else {
+        modalDom.scoreWrap.style.display = "none";
+      }
+
+      // 简介：优先本地 overview（即使为空也先占位）
+      modalDom.overview.textContent =
+        (movie.overview && String(movie.overview).trim()) ||
+        "暂无剧情简介，正在尝试从 TMDB 获取…";
+
+      // 导演：本地已有则直接填（"导演：XXX" 格式）
+      modalDom.director.innerHTML = buildDirectorHtml(
+        movie.director && String(movie.director).trim()
+      );
+
+      // 推荐语
+      modalDom.rec.innerHTML =
+        movie.recommendation && String(movie.recommendation).trim()
+          ? formatRecommendation(movie.recommendation)
+          : `<span style="color:#9aa0a6;font-style:italic;">暂无推荐语（可运行 generate_all.py 批量生成）。</span>`;
+
+      // 类型：先兜底渲染本地 genre_ids（英文）
+      renderGenreEnTags(null, movie.genre_ids);
+      renderMainPoster(movie.poster_path);
+
+      // 演员先清空，避免闪上次的内容
+      modalDom.cast.innerHTML = "";
+
+      // ——— 显示弹窗：先展示 loading，再异步拉 TMDB 填演员/精准类型 ———
+      modalDom.backdrop.classList.add("active");
+      modalDom.backdrop.setAttribute("aria-hidden", "false");
+      modalDom.content.style.display = "block";
+      modalDom.error.style.display = "none";
+      modalDom.loading.style.display = "none"; // 上面本地字段先填了，用户看到基础内容无需 loading
+      document.body.style.overflow = "hidden"; // 锁页面滚动
+      modalDom.scroll.scrollTop = 0;
+      // 焦点给关闭按钮（ESC 可直接关）
+      setTimeout(() => { try { modalDom.closeBtn.focus(); } catch (_) { } }, 30);
+
+      // ——— 异步拉 TMDB：/movie/{id} + /movie/{id}/credits（带缓存 + zh-CN 优先 + 0.2s 节流）———
+      // 变量：用 let 以便失败时重新赋值为 fallback（默认语言）
+      let details = null;
+      let credits = null;
+      // zhOk=true 表示 credits 与 details 都是中文语境，name 是中文、original_name 是英文
+      let zhOk = false;
+      try {
+        // ① details（zh-CN：中文标题、简介、类型、年份）
+        details = TMDB_CACHE.details_zh[id];
+        if (details === undefined) {
+          details = await tmdbFetch(`/movie/${id}`, { language: "zh-CN" });
+          TMDB_CACHE.details_zh[id] = details || false;
+          await sleep(200); // TMDB 限流友好：两次请求 ≥0.2s
+        }
+
+        // ② credits（本地演员库优先 → TMDB zh-CN）
+        //    本地库由 fetch_credits.py 抓取入库（中文），秒开且不依赖外网；
+        //    本地没有时才走 TMDB（zh-CN：演员 name=中文、original_name=英文）
+        credits = TMDB_CACHE.credits_zh[id];
+        if (credits === undefined) {
+          credits = await fetchLocalCredits(id);   // 本地演员库（/api/credits/<id>）
+          if (credits === null) {
+            credits = await tmdbFetch(`/movie/${id}/credits`, { language: "zh-CN" });
+          }
+          TMDB_CACHE.credits_zh[id] = credits || false;
+        }
+        zhOk = !!(details || credits); // 只要有一个拿到 zh-CN 就算 zh 路径走通（即便另一个 404/空）
+      } catch (zhErr) {
+        // zh-CN 失败：优雅降级 → 用默认语言（英文）credits + details 兜底
+        console.warn(`[TMDB zh-CN 失败，回退默认语言] movie=${movie.id || movie.title || id}：` + (zhErr && zhErr.message ? zhErr.message : zhErr));
+        zhOk = false;
+        try {
+          details = TMDB_CACHE.details[id];
+          if (details === undefined) {
+            details = await tmdbFetch(`/movie/${id}`);
+            TMDB_CACHE.details[id] = details || false;
+            await sleep(200);
+          }
+          credits = TMDB_CACHE.credits[id];
+          if (credits === undefined) {
+            credits = await tmdbFetch(`/movie/${id}/credits`);
+            TMDB_CACHE.credits[id] = credits || false;
+          }
+        } catch (fallbackErr) {
+          console.error("[TMDB 默认语言也失败] movie=" + id + "：", fallbackErr);
+        }
+      }
+
+      // ——— 用 TMDB 数据覆盖/补齐 ———（外层 try：任何意外都 catch 为 banner 错误，不丢本地内容）
+      try {
+        if (details) {
+          if (details.title) modalDom.title.textContent = details.title;
+          else if (details.original_title) modalDom.title.textContent = details.original_title;
+          if (details.release_date) {
+            const y = String(details.release_date).slice(0, 4);
+            modalDom.year.textContent = y ? `${y} 年上映 · ${details.release_date}` : (movie.year ? movie.year : "—");
+          }
+          const rTmdb = (details.vote_average !== null && details.vote_average !== undefined) ? Number(details.vote_average) : null;
+          const rFinal = (rTmdb !== null && rTmdb > 0) ? rTmdb : rLocal;
+          if (rFinal !== null && rFinal > 0) {
+            modalDom.scoreWrap.style.display = "inline-flex";
+            modalDom.scoreNum.textContent = rFinal.toFixed(1);
+          } else {
+            modalDom.scoreWrap.style.display = "none";
+          }
+          // 简介：TMDB 优先（语言是 API 默认 en，但大多数有中文的话 TMDB 会按 locale）
+          if (details.overview && String(details.overview).trim()) {
+            modalDom.overview.textContent = String(details.overview).trim();
+          } else if (!(movie.overview && String(movie.overview).trim())) {
+            modalDom.overview.textContent = "暂无剧情简介。";
+          }
+          // 英文类型：TMDB 返回的 genres 原生 name 就是英文
+          renderGenreEnTags(details.genres, movie.genre_ids);
+
+          // 海报：TMDB 最新值（可能比本地大尺寸更准确）
+          if (details.poster_path) renderMainPoster(details.poster_path);
+          // 背景大图：用 backdrop_path 做模糊背景（直连→镜像 智能加载）
+          if (details.backdrop_path) {
+            const bCands = buildTmdbImageCandidates(details.backdrop_path, BACKDROP_SIZE);
+            if (bCands.length) smartImg(modalDom.heroBack, bCands);
+          } else {
+            // 退化：用海报当背景
+            const bCands = buildTmdbImageCandidates(details.poster_path || movie.poster_path, BACKDROP_SIZE);
+            if (bCands.length) smartImg(modalDom.heroBack, bCands);
+          }
+        } else {
+          // details 拿不到，背景也要设个图：用本地海报 path
+          const bCands = buildTmdbImageCandidates(movie.poster_path, BACKDROP_SIZE);
+          if (bCands.length) smartImg(modalDom.heroBack, bCands);
+        }
+
+        // ——— credits：导演（支持 "英文名 (中文名)"）+ 主要演员（严格前 8 位 cast order 排序）
+        if (credits) {
+          // 导演：zh-CN 语义下 name=中文译名，original_name=英文原名；默认语言下两者相等→仅显中文/原英文名
+          const directorsArr = (credits.crew || [])
+            .filter(p => p && String(p.department) === "Directing" && String(p.job) === "Director" && (p.name || p.original_name))
+            .map(p => ({
+              zhName: String(p.name || "").trim(),
+              enName: String(p.original_name || p.name || "").trim(),
+            }))
+            .filter(d => d.zhName || d.enName);
+          if (directorsArr.length) {
+            const dirDisplayStr = directorsArr
+              .map(d => formatDualName(d.enName, d.zhName))
+              .filter(Boolean)
+              .join("、");
+            if (dirDisplayStr) modalDom.director.innerHTML = buildDirectorHtml(dirDisplayStr);
+          }
+
+          // 演员：cast 按 order 升序，同时保留 enName(original_name) / zhName(name) / profile_path / character
+          let castList = (credits.cast || [])
+            .filter(p => p && (p.name || p.original_name))
+            .map(p => ({
+              enName: String(p.original_name || p.name || "").trim(),
+              zhName: String(p.name || "").trim(),
+              character: p.character ? String(p.character).trim() : "",
+              profile_path: p.profile_path ? String(p.profile_path).trim() : "",
+              order: Number.isFinite(Number(p.order)) ? Number(p.order) : 9999,
+            }))
+            .sort((a, b) => a.order - b.order);
+          // 去重：按英文 original_name 去重更稳定（若为空则用 zhName 兜底）
+          const seenCast = new Set();
+          castList = castList.filter(c => {
+            const k = c.enName || c.zhName;
+            if (seenCast.has(k)) return false;
+            seenCast.add(k); return true;
+          });
+          if (castList.length === 0) {
+            modalDom.cast.innerHTML =
+              `<div class="actor-card" style="min-width:auto;max-width:none;">` +
+              `<div class="actor-avatar"><span class="avatar-fallback c-7">!</span></div>` +
+              `<div class="actor-meta"><span class="actor-name" style="color:#888;">（暂无演员信息）</span></div>` +
+              `</div>`;
+          } else {
+            // 严格前 8 位
+            modalDom.cast.innerHTML = castList
+              .slice(0, 8)
+              .map((c, i) => buildActorCardHtml({
+                enName: c.enName,
+                zhName: c.zhName,
+                character: c.character,
+                profile_path: c.profile_path,
+              }, i))
+              .join("");
+            hydrateCastAvatars();   // 头像走直连→镜像→首字母 智能加载
+          }
+        } else {
+          // credits 拉取失败时，导演仍保持本地值；仅当连本地值都没有才填占位
+          const directorHtml = modalDom.director.innerHTML || "";
+          if (!directorHtml || directorHtml.trim() === "" || directorHtml.trim() === "—") {
+            modalDom.director.innerHTML = "—";
+          }
+          modalDom.cast.innerHTML =
+            `<div class="actor-card" style="min-width:auto;max-width:none;">` +
+            `<div class="actor-avatar"><span class="avatar-fallback c-6">!</span></div>` +
+            `<div class="actor-meta"><span class="actor-name" style="color:#888;">（未从 TMDB 取到演员信息）</span></div>` +
+            `</div>`;
+        }
+      } catch (e) {
+        // 出错：显示错误条，但不关掉 Modal（本地填的信息用户还能看）
+        const msg = e && e.message ? e.message : String(e);
+        modalDom.error.style.display = "block";
+        modalDom.error.textContent = "⚠️ TMDB 详情获取失败：" + msg + "（已显示本地可用数据）";
+        // 确保滚动条回到顶部让用户看到错误
+        modalDom.scroll.scrollTop = 0;
+      }
+    }
+
+    /**
+     * 一次性初始化 Modal 全局事件（关闭按钮 / 遮罩点击 / ESC）
+     */
+    (function initModalEvents() {
+      modalDom.closeBtn.addEventListener("click", closeModal);
+      // 点击遮罩（仅当 target 是 backdrop 本身，不是内部内容）才关
+      modalDom.backdrop.addEventListener("click", (e) => {
+        if (e.target === modalDom.backdrop) closeModal();
+      });
+      // ESC 关闭
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && modalDom.backdrop.classList.contains("active")) {
+          closeModal();
+        }
+      });
+      // 防止 Modal 内部焦点 Tab 逃逸（简易无障碍实现）
+      modalDom.backdrop.addEventListener("keydown", (e) => {
+        if (e.key !== "Tab" || !modalDom.backdrop.classList.contains("active")) return;
+        const focusable = modalDom.box.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      });
+    })();
+
+    /**
+     * 通用 fetch：url -> 解析 JSON，校验 code===0，返回 {json, list}；失败抛异常。
+     */
+    async function fetchJson(url) {
+      const resp = await fetch(url, { method: "GET" });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const json = await resp.json();
+      if (json.code !== 0) throw new Error(json.message || "接口返回异常");
+      const list = json.data || [];
+      return { json, list };
+    }
+
+    /**
+     * 计算要渲染的页码按钮序列。
+     * 返回元素为数字或字符串 "..."（省略号）。
+     * 策略：始终展示首页与末页；当前页左右各 PAGE_WINDOW 个；中间断点用省略号。
+     * 总页数 <=7 时直接全部展示。
+     */
+    function getPageNumbers(current, total) {
+      if (total <= 1) return [];
+      if (total <= 7) {
+        return Array.from({ length: total }, (_, i) => i + 1);
+      }
+      const pages = [1];
+      const start = Math.max(2, current - PAGE_WINDOW);
+      const end = Math.min(total - 1, current + PAGE_WINDOW);
+      if (start > 2) pages.push("...");
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (end < total - 1) pages.push("...");
+      pages.push(total);
+      return pages;
+    }
+
+    /**
+     * 读取当前所有控件（搜索 + 筛选），构建 /api/filter URL 并执行。
+       * 搜索 / 筛选 / 清空 按钮 / 下拉 change / 翻页 都走这个入口，AND 条件组合。
+       *
+       * @param {boolean}  fromSearch  是否来自"主动搜索"（点击搜索按钮/回车），决定空关键词时的提示文案。
+       * @param {number?}  targetPage  翻页时传入目标页码；与 resetPage 互斥。
+       * @param {boolean}  resetPage   是否回第 1 页（搜索/筛选/清空触发）。
+       */
+    async function applyFilters(fromSearch = false, targetPage = null, resetPage = false) {
+      // 防止过渡期间重复触发（快速点击/连按方向键）
+      if (pageTransitioning) return;
+
+      const q = (qInput.value || "").trim();
+      const minYear = (minYearSel.value || "").trim();
+      const maxYear = (maxYearSel.value || "").trim();
+      const minRating = (minRatingSel.value || "").trim();
+      const genre = (genreSel.value || "").trim();
+
+      const anyFilter = !!(minYear || maxYear || minRating || genre);
+      const hasQuery = !!(q || anyFilter);
+
+      // 客户端校验：条件变化 → 回第 1 页；翻页 → 用目标页（夹紧到 [1, totalPages]）
+      if (resetPage) {
+        currentPage = 1;
+      } else if (targetPage !== null) {
+        const clamped = Math.max(1, Math.min(targetPage, totalPages || 1));
+        if (clamped === currentPage) return;   // 目标无效或与当前相同 → 不动
+        currentPage = clamped;
+      }
+
+      // 构建 URL（page_size 跟随用户选择，不随筛选重置）
+      const usp = new URLSearchParams();
+      if (q) usp.set("q", q);
+      if (minYear) usp.set("min_year", minYear);
+      if (maxYear) usp.set("max_year", maxYear);
+      if (minRating) usp.set("min_rating", minRating);
+      if (genre) usp.set("genre", genre);
+      usp.set("page", String(currentPage));
+      usp.set("page_size", String(currentPageSize));
+      const url = API_FILTER + "?" + usp.toString();
+
+      // 平滑过渡：若当前已有卡片内容，先淡出再换骨架
+      const hasContent = !!grid.querySelector(".card");
+      if (hasContent) {
+        pageTransitioning = true;
+        grid.classList.add("grid--loading");
+        await new Promise((r) => setTimeout(r, 130));
+      } else {
+        pageTransitioning = true;
+      }
+
+      setStatus(hasQuery ? ((fromSearch || q) ? "搜索中…" : "筛选中…") : "加载中…");
+      renderSkeletons(6);
+
+      try {
+        const { json, list } = await fetchJson(url);
+        const count = json.total ?? list.length;
+        currentPage = json.page || currentPage;
+        // 服务端 total_pages 缺失则按 count/当前页大小兜底
+        totalPages = json.total_pages ?? Math.max(1, Math.ceil(count / currentPageSize));
+        // 客户端校验：当前页超出总页数（如数据被删）→ 回退到末页重查
+        if (currentPage > totalPages && totalPages > 0) {
+          currentPage = totalPages;
+          return applyFilters(false, null, false);
+        }
+        currentTotal = count;
+        renderPager();
+
+        // ----- 构造筛选/搜索摘要 meta -----
+        const metaParts = [];
+        if (q) {
+          metaParts.push(
+            `关键词「<span class="keyword">${escapeHtml(q)}</span>」`
+          );
+        }
+        if (minYear || maxYear) {
+          const a = minYear || "最早";
+          const b = maxYear || "最新";
+          metaParts.push(`年份 <b>${escapeHtml(a)} — ${escapeHtml(b)}</b>`);
+        }
+        if (minRating) {
+          metaParts.push(`评分 <b>≥ ${escapeHtml(minRating)}</b>`);
+        }
+        if (genre) {
+          const gName = GENRE_NAMES[String(genre)] || `ID ${genre}`;
+          metaParts.push(`类型 <b>${escapeHtml(gName)}</b>`);
+        }
+        if (metaParts.length > 0) {
+          const hits =
+            count > 0
+              ? `命中 ${count} 条 · 第 ${currentPage}/${totalPages} 页`
+              : `无命中`;
+          setSearchMeta(metaParts.join(" &nbsp;·&nbsp; ") + " &nbsp;&nbsp;→&nbsp;&nbsp; " + hits);
+          setStatus(hasQuery ? "完成" : "加载完成", "ok");
+        } else {
+          setSearchMeta("");
+          setStatus(`共 ${count} 部 · 第 ${currentPage}/${totalPages} 页 · 接口正常`, "ok");
+        }
+
+        // ----- 渲染 + 淡入 -----
+        const emptyMsg = hasQuery ? "未找到相关电影" : "";
+        renderMovies(list, emptyMsg);
+        updatePosterDiag();
+        grid.classList.remove("grid--loading");
+        grid.classList.remove("grid--fade-in");
+        void grid.offsetWidth;   // reflow 以重置 keyframe 动画
+        grid.classList.add("grid--fade-in");
+      } catch (e) {
+        setStatus("请求失败", "error");
+        setSearchMeta("");
+        renderError(e.message || String(e));
+      } finally {
+        pageTransitioning = false;
+        grid.classList.remove("grid--loading");
+      }
+    }
+
+
+    /**
+     * 根据 currentPage / totalPages / currentTotal 更新分页条 UI：
+     *  - 页大小下拉同步
+     *  - 状态文本 "显示 X-Y / 共 Z 条"
+     *  - 首末/前后按钮禁用态
+     *  - 页码按钮（含省略号、当前页 active）
+     * total=0 时隐藏整条分页栏。
+     */
+    function renderPager() {
+      // 同步页大小下拉
+      if (pagerDom.pageSizeSel.value !== String(currentPageSize)) {
+        pagerDom.pageSizeSel.value = String(currentPageSize);
+      }
+
+      const show = currentTotal > 0;
+      pagerDom.root.hidden = !show;
+      if (!show) {
+        pagerDom.pageNumbers.innerHTML = "";
+        pagerDom.status.textContent = "显示 0-0 / 共 0 条";
+        return;
+      }
+
+      // 状态文本：当前页起止区间
+      const startIdx = (currentPage - 1) * currentPageSize + 1;
+      const endIdx = Math.min(currentPage * currentPageSize, currentTotal);
+      pagerDom.status.textContent = `显示 ${startIdx}-${endIdx} / 共 ${currentTotal} 条`;
+
+      // 首末/前后按钮
+      pagerDom.first.disabled = currentPage <= 1;
+      pagerDom.prev.disabled = currentPage <= 1;
+      pagerDom.next.disabled = currentPage >= totalPages;
+      pagerDom.last.disabled = currentPage >= totalPages;
+
+      // 页码按钮
+      const pages = getPageNumbers(currentPage, totalPages);
+      const frag = document.createDocumentFragment();
+      for (const p of pages) {
+        if (p === "...") {
+          const el = document.createElement("span");
+          el.className = "page-ellipsis";
+          el.textContent = "…";
+          el.setAttribute("aria-hidden", "true");
+          frag.appendChild(el);
+        } else {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "pager-btn page-num" + (p === currentPage ? " active" : "");
+          btn.textContent = String(p);
+          btn.dataset.page = String(p);
+          btn.setAttribute("aria-label", `第 ${p} 页`);
+          if (p === currentPage) {
+            btn.setAttribute("aria-current", "page");
+            btn.disabled = true;
+          }
+          btn.addEventListener("click", () => goToPage(p));
+          frag.appendChild(btn);
+        }
+      }
+      pagerDom.pageNumbers.innerHTML = "";
+      pagerDom.pageNumbers.appendChild(frag);
+    }
+
+    // ----- 事件绑定 -----
+    // 搜索：按钮 + 回车
+    searchBtn.addEventListener("click", () => applyFilters(true, null, true));
+    qInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        applyFilters(true, null, true);
+      }
+    });
+    // 清空：输入框置空 + 所有筛选拔回"全部"，并回第 1 页
+    clearBtn.addEventListener("click", () => {
+      qInput.value = "";
+      minYearSel.value = "";
+      maxYearSel.value = "";
+      minRatingSel.value = "";
+      genreSel.value = "";
+      applyFilters(false, null, true);
+    });
+    // 任何筛选下拉变化 → 自动重新加载（条件变化，回第 1 页）
+    [minYearSel, maxYearSel, minRatingSel, genreSel].forEach((sel) => {
+      sel.addEventListener("change", () => applyFilters(false, null, true));
+    });
+
+    // 分页按钮
+    pagerDom.first.addEventListener("click", () => goToPage(1));
+    pagerDom.prev.addEventListener("click", () => goToPage(currentPage - 1));
+    pagerDom.next.addEventListener("click", () => goToPage(currentPage + 1));
+    pagerDom.last.addEventListener("click", () => goToPage(totalPages));
+
+    // 页大小选择器：切换后回第 1 页（page_size 状态保持，不随筛选重置）
+    pagerDom.pageSizeSel.addEventListener("change", () => {
+      const v = parseInt(pagerDom.pageSizeSel.value, 10);
+      if (!PAGE_SIZE_OPTIONS.includes(v)) return;   // 客户端校验
+      currentPageSize = v;
+      applyFilters(false, null, true);              // resetPage=true → 回第 1 页
+    });
+
+    // 键盘导航：
+    //  - 焦点在页码组内：←/→ 在页码按钮间移动焦点，Enter/Space 激活（button 原生）
+    //  - 焦点不在页码组：←/→ 翻上/下一页，Home/End 跳首/末页
+    document.addEventListener("keydown", (e) => {
+      const tag = (e.target && e.target.tagName) || "";
+      const isInput = tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA";
+      if (isInput) return;
+      if (pagerDom.root.hidden) return;
+
+      const inPageGroup = pagerDom.pageNumbers.contains(document.activeElement);
+
+      if (inPageGroup && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+        const nums = Array.from(pagerDom.pageNumbers.querySelectorAll(".page-num"));
+        if (!nums.length) return;
+        const idx = nums.indexOf(document.activeElement);
+        let nextIdx = idx;
+        if (e.key === "ArrowLeft") nextIdx = Math.max(0, idx - 1);
+        else nextIdx = Math.min(nums.length - 1, idx + 1);
+        if (nextIdx !== idx && nums[nextIdx]) {
+          e.preventDefault();
+          nums[nextIdx].focus();
+        }
+        return;   // 不再触发全局翻页
+      }
+
+      if (e.key === "ArrowLeft" && currentPage > 1) {
+        e.preventDefault();
+        goToPage(currentPage - 1);
+      } else if (e.key === "ArrowRight" && currentPage < totalPages) {
+        e.preventDefault();
+        goToPage(currentPage + 1);
+      } else if (e.key === "Home" && currentPage > 1) {
+        e.preventDefault();
+        goToPage(1);
+      } else if (e.key === "End" && currentPage < totalPages) {
+        e.preventDefault();
+        goToPage(totalPages);
+      }
+    });
+
+    // 翻页：滚动到网格顶部 + 触发加载
+    function goToPage(page) {
+      if (page === currentPage) return;
+      if (page < 1 || page > totalPages) return;   // 客户端校验：无效页码忽略
+      grid.scrollIntoView({ behavior: "smooth", block: "start" });
+      applyFilters(false, page);
+    }
+
+    // DOM ready：同步页大小下拉 + 首次加载
+    function bootstrap() {
+      pagerDom.pageSizeSel.value = String(DEFAULT_PAGE_SIZE);
+      applyFilters();
+    }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", bootstrap);
+    } else {
+      bootstrap();
+    }
+  </script>
+
+  <script>
+    // ============================================================
+    // 心情助手：右下角悬浮球 + 面板（标签秒开 / 描述走 AI）
+    // 复用主脚本里的 openModal / escapeHtml 等全局函数
+    // ============================================================
+    (function () {
+      var MOOD_TAGS = [
+        { id: "heal", label: "治愈", emoji: "🌿" },
+        { id: "happy", label: "开心", emoji: "😄" },
+        { id: "alone", label: "独处", emoji: "🧘" },
+        { id: "passion", label: "热血", emoji: "🔥" },
+        { id: "mind", label: "烧脑", emoji: "🧩" },
+        { id: "romance", label: "浪漫", emoji: "💞" },
+        { id: "emo", label: "深夜emo", emoji: "🌙" },
+        { id: "calm", label: "平静", emoji: "🍃" },
+      ];
+      var THINKING_MSGS = ["在感受你的情绪…", "帮你挑几部对的…", "想想此刻什么最合适…"];
+
+      var fab = document.getElementById("moodFab");
+      var panel = document.getElementById("moodPanel");
+      var closeBtn = document.getElementById("moodClose");
+      var chipsEl = document.getElementById("moodChips");
+      var inputEl = document.getElementById("moodInput");
+      var sendBtn = document.getElementById("moodSend");
+      var bodyEl = document.getElementById("moodBody");
+
+      var lastAction = null;
+      var thinkingTimer = null;
+
+      function openPanel() {
+        panel.classList.add("active");
+        panel.setAttribute("aria-hidden", "false");
+        setTimeout(function () { try { inputEl.focus(); } catch (_) { } }, 160);
+      }
+      function closePanel() {
+        panel.classList.remove("active");
+        panel.setAttribute("aria-hidden", "true");
+      }
+      fab.addEventListener("click", function () {
+        panel.classList.contains("active") ? closePanel() : openPanel();
+      });
+      closeBtn.addEventListener("click", closePanel);
+      document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && panel.classList.contains("active")) closePanel();
+      });
+
+      MOOD_TAGS.forEach(function (t) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "mood-chip";
+        b.textContent = t.emoji + " " + t.label;
+        b.addEventListener("click", function () { runTag(t.id, 0); });
+        chipsEl.appendChild(b);
+      });
+
+      function showHint(text) {
+        bodyEl.innerHTML = '<div class="mood-hint">' + escapeHtml(text) + '</div>';
+      }
+      function showThinking() {
+        bodyEl.innerHTML =
+          '<div class="mood-thinking"><div class="mood-dots"><i></i><i></i><i></i></div>' +
+          '<div class="mood-thinking-text">' + THINKING_MSGS[0] + '</div></div>';
+        var i = 0;
+        clearInterval(thinkingTimer);
+        thinkingTimer = setInterval(function () {
+          i = (i + 1) % THINKING_MSGS.length;
+          var t = bodyEl.querySelector(".mood-thinking-text");
+          if (t) t.textContent = THINKING_MSGS[i];
+        }, 1400);
+      }
+      function stopThinking() { clearInterval(thinkingTimer); }
+
+      function typeText(el, text, speed) {
+        return new Promise(function (resolve) {
+          var chars = Array.from(text || "");
+          var i = 0;
+          el.innerHTML = '<span class="cursor"></span>';
+          function step() {
+            if (i >= chars.length) { el.innerHTML = escapeHtml(text); resolve(); return; }
+            i += 2;
+            el.innerHTML = escapeHtml(chars.slice(0, i).join("")) + '<span class="cursor"></span>';
+            setTimeout(step, speed);
+          }
+          step();
+        });
+      }
+
+      function createMoodItem(m) {
+        var poster = m.poster_path || "";
+        var title = m.title || "未知片名";
+        var year = m.year ? String(m.year) : "";
+        var reason = m.reason || "";
+        var rec = m.recommendation || "";
+
+        var el = document.createElement("div");
+        el.className = "mood-item";
+        var thumbHtml = poster
+          ? '<img src="' + escapeHtml(poster) + '" alt="' + escapeHtml(title) + '" loading="lazy" referrerpolicy="no-referrer" />'
+          : '<div style="height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:11px;">无图</div>';
+        var subHtml = reason
+          ? '<div class="mood-item-reason">' + escapeHtml(reason) + '</div>'
+          : '<div class="mood-item-sub">' + escapeHtml(rec ? rec.split("\n")[0].slice(0, 40) : "") + '</div>';
+        el.innerHTML =
+          '<div class="mood-thumb">' + thumbHtml + '</div>' +
+          '<div class="mood-item-meta">' +
+            '<div class="mood-item-title">' + escapeHtml(title) +
+              (year ? ' <span style="color:#888;font-weight:400;font-size:12px;">' + escapeHtml(year) + '</span>' : '') +
+            '</div>' +
+            subHtml +
+          '</div>';
+        el.addEventListener("click", function () { openModal(m); });
+        return el;
+      }
+
+      function renderResults(opener, items, animate) {
+        stopThinking();
+        rerollWrap.style.display = "block";
+        bodyEl.innerHTML = "";
+        var o = document.createElement("div");
+        o.className = "mood-opener";
+        bodyEl.appendChild(o);
+
+        var frag = document.createDocumentFragment();
+        (items || []).forEach(function (m) { frag.appendChild(createMoodItem(m)); });
+
+        var renderItems = function () { bodyEl.appendChild(frag); };
+        if (animate && opener) {
+          typeText(o, opener, 26).then(renderItems);
+        } else {
+          o.textContent = opener || "";
+          renderItems();
+        }
+        if (!items || !items.length) {
+          var hint = document.createElement("div");
+          hint.className = "mood-hint";
+          hint.textContent = "没挑到特别合适的，换个心情词或换种说法试试。";
+          bodyEl.appendChild(hint);
+        }
+      }
+
+      async function runTag(tagId, offset) {
+        lastAction = { type: "tag", tagId: tagId, offset: offset };
+        try {
+          var resp = await fetch("/api/mood/tag?tag=" + encodeURIComponent(tagId) + "&count=12&offset=" + offset);
+          var json = await resp.json();
+          if (json.code !== 0) throw new Error(json.message || "请求失败");
+          renderResults(json.opener, json.data, false);
+        } catch (e) {
+          stopThinking();
+          showHint("标签推荐出错了：" + e.message);
+        }
+      }
+
+      async function runAi(text) {
+        lastAction = { type: "ai", text: text };
+        showThinking();
+        try {
+          var resp = await fetch("/api/mood", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text: text, count: 8 }),
+          });
+          var json = await resp.json();
+          if (json.code !== 0) throw new Error(json.message || "请求失败");
+          renderResults(json.opener, json.data, true);
+        } catch (e) {
+          stopThinking();
+          showHint("心情助手走神了：" + e.message + "（可以试试点上面的心情词）");
+        }
+      }
+
+      function submit() {
+        var text = (inputEl.value || "").trim();
+        if (!text) return;
+        inputEl.value = "";
+        runAi(text);
+      }
+      sendBtn.addEventListener("click", submit);
+      inputEl.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); submit(); }
+      });
+
+      // “换一批”按钮（固定在面板底部，首次出结果后才显示）
+      var rerollWrap = document.createElement("div");
+      rerollWrap.className = "mood-actions";
+      rerollWrap.style.display = "none";
+      var rerollBtn = document.createElement("button");
+      rerollBtn.type = "button";
+      rerollBtn.textContent = "换一批";
+      rerollBtn.addEventListener("click", function () {
+        if (!lastAction) return;
+        if (lastAction.type === "tag") {
+          runTag(lastAction.tagId, (lastAction.offset || 0) + 12);
+        } else {
+          runAi(lastAction.text);
+        }
+      });
+      rerollWrap.appendChild(rerollBtn);
+      panel.appendChild(rerollWrap);
+    })();
+  </script>
+
+  <!-- static offline data adapter -->
+  <script src="adapter.js" defer></script>
+</body>
+
+</html>
