@@ -261,11 +261,24 @@
       color: #555;
     }
 
-    /* -------- Grid -------- */
+    /* -------- Grid：一排 3 个（窄屏自动收窄） -------- */
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 22px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    @media (max-width: 1180px) {
+      .grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     /* -------- Pager -------- */
@@ -402,28 +415,41 @@
       font-weight: 600;
     }
 
-    /* 翻页时网格淡出 → 淡入 */
+    /* 翻页：整组轻上浮淡出 → 新卡片错峰入场（更顺滑） */
     .grid {
-      transition: opacity .18s var(--ease);
+      transition: opacity .22s ease, transform .22s ease;
     }
 
     .grid--loading {
-      opacity: .25;
+      opacity: .2;
+      transform: translateY(8px);
     }
 
-    .grid--fade-in {
-      animation: gridFadeIn .25s var(--ease);
+    .grid--fade-in .card {
+      animation: cardIn .45s cubic-bezier(.18, .9, .25, 1.04) both;
     }
 
-    @keyframes gridFadeIn {
+    .grid--fade-in .card:nth-child(2)  { animation-delay: .035s; }
+    .grid--fade-in .card:nth-child(3)  { animation-delay: .07s; }
+    .grid--fade-in .card:nth-child(4)  { animation-delay: .105s; }
+    .grid--fade-in .card:nth-child(5)  { animation-delay: .14s; }
+    .grid--fade-in .card:nth-child(6)  { animation-delay: .175s; }
+    .grid--fade-in .card:nth-child(7)  { animation-delay: .21s; }
+    .grid--fade-in .card:nth-child(8)  { animation-delay: .245s; }
+    .grid--fade-in .card:nth-child(9)  { animation-delay: .28s; }
+    .grid--fade-in .card:nth-child(10) { animation-delay: .315s; }
+    .grid--fade-in .card:nth-child(11) { animation-delay: .35s; }
+    .grid--fade-in .card:nth-child(12) { animation-delay: .385s; }
+
+    @keyframes cardIn {
       from {
         opacity: 0;
-        transform: translateY(6px);
+        transform: translateY(14px) scale(.97);
       }
 
       to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
       }
     }
 
@@ -466,30 +492,38 @@
       }
     }
 
-    /* -------- Card -------- */
+    /* -------- Card：横向卡片（海报在左、信息在右） -------- */
     .card {
       position: relative;
       background: var(--card-bg);
       border-radius: var(--card-radius);
       overflow: hidden;
       display: flex;
-      flex-direction: column;
-      transition: transform .35s var(--ease), box-shadow .35s var(--ease);
-      /* ensure hover not clipped when using transform: see failure experience */
+      flex-direction: row;
+      align-items: stretch;
+      min-height: 158px;
+      transition: transform .25s var(--ease), box-shadow .3s var(--ease);
       will-change: transform;
     }
 
     .card:hover {
-      transform: translateY(-8px);
+      transform: translateY(-4px);
       box-shadow: var(--shadow-hover);
     }
 
     .poster-wrap {
       position: relative;
-      width: 100%;
-      aspect-ratio: 2 / 3;
+      width: 118px;
+      flex: 0 0 118px;
       background: var(--placeholder-bg);
       overflow: hidden;
+    }
+
+    @media (max-width: 900px) {
+      .poster-wrap {
+        width: 100px;
+        flex-basis: 100px;
+      }
     }
 
     .rating-badge {
@@ -566,11 +600,12 @@
     }
 
     .body {
-      padding: 14px 14px 18px;
+      padding: 12px 16px 14px;
       display: flex;
       flex-direction: column;
       gap: 6px;
       flex: 1;
+      min-width: 0;
     }
 
     .title-row {
@@ -602,12 +637,16 @@
     }
 
     .recommendation {
-      margin: 6px 0 0;
+      margin: 4px 0 0;
       font-size: 12.5px;
-      line-height: 1.65;
+      line-height: 1.55;
       color: #d1d5db;
       white-space: pre-wrap;
       word-break: break-word;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
 
     .recommendation .heart-line {
@@ -643,6 +682,9 @@
       overflow: hidden;
       border-radius: var(--card-radius);
       background: #1a1a1a;
+      display: flex;
+      align-items: stretch;
+      min-height: 158px;
     }
 
     .skeleton::after {
@@ -661,11 +703,14 @@
     }
 
     .skeleton .sk-poster {
-      aspect-ratio: 2/3;
+      width: 118px;
+      flex: 0 0 118px;
       background: #222;
     }
 
     .skeleton .sk-body {
+      flex: 1;
+      min-width: 0;
       padding: 14px;
       display: flex;
       flex-direction: column;
@@ -1841,6 +1886,7 @@
         <select id="pageSize" class="pager-select" aria-label="每页条数">
           <option value="12">12</option>
           <option value="24">24</option>
+          <option value="30" selected>30</option>
           <option value="48">48</option>
           <option value="96">96</option>
         </select>
@@ -1952,8 +1998,8 @@
     const API_MOVIES = "/api/movies";
     const API_SEARCH = "/api/search";
     const API_FILTER = "/api/filter";
-    const DEFAULT_PAGE_SIZE = 24;
-    const PAGE_SIZE_OPTIONS = [12, 24, 48, 96];
+    const DEFAULT_PAGE_SIZE = 30;
+    const PAGE_SIZE_OPTIONS = [12, 24, 30, 48, 96];
 
     // 搜索 / 筛选控件
     const qInput = document.getElementById("q");
@@ -2836,7 +2882,7 @@
       if (hasContent) {
         pageTransitioning = true;
         grid.classList.add("grid--loading");
-        await new Promise((r) => setTimeout(r, 130));
+        await new Promise((r) => setTimeout(r, 240));
       } else {
         pageTransitioning = true;
       }
