@@ -2102,71 +2102,6 @@
       "10752": "War", "37": "Western",
     };
 
-    // ============================================================
-    // 海报加载诊断角标（临时排查工具，问题解决后可删除）
-    // ============================================================
-    const diagBox = document.createElement("div");
-    diagBox.id = "posterDiag";
-    diagBox.style.cssText =
-      "position:fixed;right:10px;top:10px;z-index:99999;" +
-      "background:rgba(0,0,0,.82);color:#ffd700;font:12px/1.5 Consolas,monospace;" +
-      "padding:8px 12px;border-radius:8px;max-width:420px;white-space:pre-wrap;";
-    document.body.appendChild(diagBox);
-    let diagFailedUrls = [];
-    function updatePosterDiag() {
-      const imgs = Array.from(document.querySelectorAll(".poster-wrap img"));
-      const loaded = imgs.filter((i) => i.classList.contains("loaded")).length;
-      const failed = imgs.filter((i) => i.dataset.diagFailed === "1").length;
-      const pending = imgs.length - loaded - failed;
-      const lines = [
-        `海报: 共${imgs.length} 已加载${loaded} 失败${failed} 待加载${pending}`,
-      ];
-      diagFailedUrls.slice(-3).forEach((u) => lines.push("  失败: " + u));
-      diagBox.textContent = lines.join("\n");
-    }
-    window.addEventListener("error", (e) => {
-      diagBox.textContent = "JS错误: " + (e.message || String(e));
-    });
-
-    // 诊断角标可拖动（按住拖动到任意位置；松手即停，位置记录在内存中）
-    (function makeDiagDraggable() {
-      const box = diagBox;
-      let dragging = false, startX = 0, startY = 0, origLeft = 0, origTop = 0;
-      box.addEventListener("pointerdown", (e) => {
-        if (e.pointerType === "mouse" && e.button !== 0) return;
-        dragging = true;
-        if (box.setPointerCapture) { try { box.setPointerCapture(e.pointerId); } catch (_) {} }
-        const rect = box.getBoundingClientRect();
-        origLeft = rect.left; origTop = rect.top;
-        startX = e.clientX; startY = e.clientY;
-        box.style.cursor = "grabbing";
-        box.style.userSelect = "none";
-        e.preventDefault();
-      });
-      box.addEventListener("pointermove", (e) => {
-        if (!dragging) return;
-        const dx = e.clientX - startX, dy = e.clientY - startY;
-        let left = origLeft + dx, top = origTop + dy;
-        // 限制在视口内，避免拖出屏幕找不回来
-        const w = box.offsetWidth || 200, h = box.offsetHeight || 60;
-        left = Math.max(4, Math.min(left, window.innerWidth - w - 4));
-        top = Math.max(4, Math.min(top, window.innerHeight - h - 4));
-        box.style.left = left + "px";
-        box.style.top = top + "px";
-        box.style.right = "auto";
-        box.style.bottom = "auto";
-      });
-      const stop = () => {
-        if (!dragging) return;
-        dragging = false;
-        box.style.cursor = "grab";
-      };
-      box.addEventListener("pointerup", stop);
-      box.addEventListener("pointercancel", stop);
-      box.style.cursor = "grab";
-      box.style.touchAction = "none";
-    })();
-    // ============================================================
 
     // ====================================================================
     // ▼▼▼ TMDB 配置 —— 如换 Key 只改下面这一行 ▼▼▼
@@ -2457,13 +2392,10 @@
       // 图片加载：成功显示，失败保持灰色占位；缓存已命中的图同步补 .loaded
       if (poster) {
         const img = card.querySelector("img");
-        const markLoaded = () => { img.classList.add("loaded"); updatePosterDiag(); };
+        const markLoaded = () => { img.classList.add("loaded"); };
         img.onload = markLoaded;
         img.onerror = () => {
-          // 失败：移除 img，保留 CSS 灰色占位 + 文字；记录到诊断角标
-          img.dataset.diagFailed = "1";
-          if (diagFailedUrls.length < 20) diagFailedUrls.push(poster);
-          updatePosterDiag();
+          // 失败：移除 img，保留 CSS 灰色占位 + 文字
           img.remove();
         };
         if (img.complete && img.naturalWidth > 0) markLoaded();
@@ -2994,7 +2926,6 @@
         // ----- 渲染 + 淡入 -----
         const emptyMsg = hasQuery ? "未找到相关电影" : "";
         renderMovies(list, emptyMsg);
-        updatePosterDiag();
         grid.classList.remove("grid--loading");
         grid.classList.remove("grid--fade-in");
         void grid.offsetWidth;   // reflow 以重置 keyframe 动画
