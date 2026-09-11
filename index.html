@@ -2178,14 +2178,25 @@
       "https://tmdb.aityp.com/t/p",
     ];
 
+    // 海报 CDN 兜底链：github.io 取不到图（被墙 / 404）时自动换源
+    const POSTER_CDN_BASES = [
+      "https://gcore.jsdelivr.net/gh/sherl786991-art/movie-wall@main/",
+      "https://fastly.jsdelivr.net/gh/sherl786991-art/movie-wall@main/",
+      "https://cdn.jsdelivr.net/gh/sherl786991-art/movie-wall@main/",
+      "https://cdn.statically.io/gh/sherl786991-art/movie-wall/main/",
+    ];
+
     /**
      * 生成图片候选 URL 列表：[直连, 镜像1, 镜像2, ...]。
-     * 本地/相对路径只有自身一个候选；直连为空时返回 []。
+     * 本地相对路径（posters/xxx.jpg）会追加 CDN 兜底链；直连为空时返回 []。
      */
     function buildTmdbImageCandidates(path, size) {
       const direct = buildTmdbImageUrl(path, size);
       if (!direct) return [];
-      if (!/^https?:/.test(String(direct))) return [direct];
+      if (!/^https?:/.test(String(direct))) {
+        const rel = String(direct).replace(/^\/+/, "");
+        return [direct].concat(POSTER_CDN_BASES.map((b) => b + rel));
+      }
       const p = String(path).startsWith("/") ? path : "/" + path;
       return [direct].concat(TMDB_IMG_MIRRORS.map((m) => m + "/" + size + p));
     }
@@ -2389,16 +2400,38 @@
       </div>
     `;
 
-      // 图片加载：成功显示，失败保持灰色占位；缓存已命中的图同步补 .loaded
+      // 图片加载：成功显示；失败或超时按候选链换源（本地 → CDN）；全挂才退回灰色占位
       if (poster) {
         const img = card.querySelector("img");
         const markLoaded = () => { img.classList.add("loaded"); };
-        img.onload = markLoaded;
-        img.onerror = () => {
-          // 失败：移除 img，保留 CSS 灰色占位 + 文字
-          img.remove();
+        let cands = [];
+        try {
+          cands = typeof buildTmdbImageCandidates === "function"
+            ? buildTmdbImageCandidates(poster, POSTER_SIZE_CARD)
+            : [];
+        } catch (e) { cands = []; }
+        if (!cands.length || cands[0] !== poster) cands = [poster].concat(cands);
+
+        let candIdx = 0;
+        let settled = false;
+        let timer = null;
+        const finish = () => { settled = true; clearTimeout(timer); };
+        const tryNext = () => {
+          if (settled) return;
+          if (candIdx >= cands.length) {
+            finish();
+            // 全部候选都失败：移除 img，保留 CSS 灰色占位 + 文字
+            img.remove();
+            return;
+          }
+          img.src = cands[candIdx++];
+          timer = setTimeout(tryNext, 6000);   // 6s 无响应视为挂起，换下一个候选
         };
-        if (img.complete && img.naturalWidth > 0) markLoaded();
+        img.onload = () => { finish(); markLoaded(); };
+        img.onerror = () => { clearTimeout(timer); tryNext(); };
+
+        if (img.complete && img.naturalWidth > 0) { finish(); markLoaded(); }
+        else tryNext();
       }
 
       // ——— 修复：卡片点击打开详情 Modal ———

@@ -117,17 +117,30 @@
     }
   };
 
-  /* ------- 图片：优先本地 posters/，演员头像无本地图时直接首字母兜底 ------- */
+  /* ------- 图片：优先本地 posters/，github.io 取不到时走 CDN 兜底 ------- */
+  var POSTER_CDN_BASES = [
+    "https://gcore.jsdelivr.net/gh/sherl786991-art/movie-wall@main/",
+    "https://fastly.jsdelivr.net/gh/sherl786991-art/movie-wall@main/",
+    "https://cdn.jsdelivr.net/gh/sherl786991-art/movie-wall@main/",
+    "https://cdn.statically.io/gh/sherl786991-art/movie-wall/main/"
+  ];
+
+  function withCdnFallback(localPath) {
+    return [localPath].concat(POSTER_CDN_BASES.map(function (b) {
+      return b + String(localPath).replace(/^\/+/, "");
+    }));
+  }
+
   window.buildTmdbImageCandidates = function (path, size) {
     try {
       var MW = window.MW;
       if (!MW) return [];
       var s = String(path || "").trim();
       if (!s) return [];
-      if (s.indexOf("posters/") === 0) return [s];
+      if (s.indexOf("posters/") === 0) return withCdnFallback(s);
       if (/^https?:/.test(s)) return [s];
       var name = s.split("/").pop().split("?")[0];
-      if (name && MW.posters.has(name)) return ["posters/" + name];
+      if (name && MW.posters.has(name)) return withCdnFallback("posters/" + name);
       return [];
     } catch (e) {
       return [];
