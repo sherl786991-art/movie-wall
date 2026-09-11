@@ -306,6 +306,7 @@
         left: 0;
         right: 0;
         bottom: 0;
+        z-index: 3;
         padding: 24px 6px 6px;
         background: linear-gradient(to top, rgba(0, 0, 0, .88), rgba(0, 0, 0, 0));
       }
@@ -2425,7 +2426,7 @@
             return;
           }
           img.src = cands[candIdx++];
-          timer = setTimeout(tryNext, 6000);   // 6s 无响应视为挂起，换下一个候选
+          timer = setTimeout(tryNext, 12000);  // 12s 无响应才判定挂起（手机慢网留足时间，避免把「慢但能成」的图掐掉）
         };
         img.onload = () => { finish(); markLoaded(); };
         img.onerror = () => { clearTimeout(timer); tryNext(); };
